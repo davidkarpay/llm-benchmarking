@@ -1,0 +1,10 @@
+{
+  "strategy": "classifier",
+  "classifier_config": {
+    "classifier_model": "phi3:3.8b",
+    "confidence_threshold": 0.6,
+    "classification_prompt": "Classify the following query into exactly ONE category. Categories: {domains}\n\nQuery: {query}\n\nRespond with ONLY the category name, nothing else."
+  },
+  "fallback_behavior": "use_fallback_specialist",
+  "routing_timeout_ms": 5000
+}

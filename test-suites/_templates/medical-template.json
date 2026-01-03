@@ -1,0 +1,99 @@
+{
+  "$schema": "../schemas/test-suite.schema.json",
+  "domain": "medical",
+  "subdomain": "{{SUBDOMAIN}}",
+  "jurisdiction": "{{JURISDICTION}}",
+  "version": "1.0",
+  "description": "Medical domain test template - replace {{PLACEHOLDERS}} with jurisdiction-specific values",
+  "metadata": {
+    "author": "benchmark-suite",
+    "template_version": "1.0",
+    "required_adaptations": [
+      "licensing_requirements",
+      "malpractice_standards",
+      "regulatory_bodies",
+      "statute_of_limitations"
+    ],
+    "jurisdiction_variables": {
+      "JURISDICTION": "Full jurisdiction name",
+      "JURISDICTION_ABBREV": "Standard abbreviation",
+      "MEDICAL_BOARD": "Name of state medical board",
+      "MALPRACTICE_STATUTE": "Relevant malpractice statute citation",
+      "SOL_YEARS": "Statute of limitations in years"
+    }
+  },
+  "test_categories": [
+    {
+      "category": "malpractice",
+      "description": "Medical malpractice standards and liability",
+      "question_templates": [
+        {
+          "id": "malpractice-standard-001",
+          "template": "What is the standard of care for {{MEDICAL_SPECIALTY}} in {{JURISDICTION}}?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-malpractice-specialist",
+          "variables": ["MEDICAL_SPECIALTY"],
+          "tags": ["standard-of-care"]
+        },
+        {
+          "id": "malpractice-elements-001",
+          "template": "What are the elements required to prove medical malpractice under {{JURISDICTION}} law?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-malpractice-specialist",
+          "tags": ["elements", "liability"]
+        },
+        {
+          "id": "malpractice-sol-001",
+          "template": "What is the statute of limitations for medical malpractice claims in {{JURISDICTION}}? Are there any exceptions?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-malpractice-specialist",
+          "tags": ["statute-of-limitations", "timing"]
+        },
+        {
+          "id": "malpractice-damages-001",
+          "template": "Does {{JURISDICTION}} have caps on medical malpractice damages? If so, what are the limits?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-malpractice-specialist",
+          "tags": ["damages", "caps"]
+        }
+      ]
+    },
+    {
+      "category": "licensing",
+      "description": "Medical licensing requirements and regulations",
+      "question_templates": [
+        {
+          "id": "licensing-req-001",
+          "template": "What are the requirements to obtain a medical license in {{JURISDICTION}}?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-licensing-specialist",
+          "tags": ["requirements", "licensure"]
+        },
+        {
+          "id": "licensing-discipline-001",
+          "template": "What actions can the {{MEDICAL_BOARD}} take against a licensed physician?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-licensing-specialist",
+          "tags": ["discipline", "sanctions"]
+        }
+      ]
+    },
+    {
+      "category": "informed-consent",
+      "description": "Informed consent requirements",
+      "question_templates": [
+        {
+          "id": "consent-req-001",
+          "template": "What are the informed consent requirements for {{PROCEDURE_TYPE}} in {{JURISDICTION}}?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-malpractice-specialist",
+          "variables": ["PROCEDURE_TYPE"],
+          "tags": ["informed-consent", "disclosure"]
+        }
+      ]
+    }
+  ],
+  "sample_hydrated_cases": [
+    {
+      "id": "fl-malpractice-001",
+      "prompt": "What is the statute of limitations for medical malpractice claims in Florida? Are there any exceptions?",
+      "expected_specialist": "fl-malpractice-specialist",
+      "expected_response_contains": ["two years", "766", "discovery"],
+      "difficulty": "medium",
+      "tags": ["statute-of-limitations", "florida"]
+    }
+  ]
+}

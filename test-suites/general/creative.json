@@ -1,0 +1,48 @@
+{
+  "domain": "general",
+  "subdomain": "creative",
+  "version": "1.0",
+  "description": "Creative writing and storytelling test cases",
+  "cases": [
+    {
+      "id": "creative-001",
+      "prompt": "Write a haiku about the ocean.",
+      "expected_specialist": "creative-specialist",
+      "expected_response_contains": ["wave", "sea", "ocean", "water", "blue", "shore"],
+      "difficulty": "easy",
+      "tags": ["poetry", "haiku"]
+    },
+    {
+      "id": "creative-002",
+      "prompt": "Write the opening paragraph of a mystery novel set in Victorian London.",
+      "expected_specialist": "creative-specialist",
+      "expected_response_contains": ["London", "fog", "street", "night", "gas", "cobble"],
+      "difficulty": "medium",
+      "tags": ["fiction", "mystery"]
+    },
+    {
+      "id": "creative-003",
+      "prompt": "Create a short story (3-4 sentences) about a robot learning to feel emotions.",
+      "expected_specialist": "creative-specialist",
+      "expected_response_contains": ["robot", "feel", "emotion", "human"],
+      "difficulty": "medium",
+      "tags": ["fiction", "sci-fi"]
+    },
+    {
+      "id": "creative-004",
+      "prompt": "Write a limerick about a programmer.",
+      "expected_specialist": "creative-specialist",
+      "expected_response_regex": "\\w+",
+      "difficulty": "easy",
+      "tags": ["poetry", "limerick"]
+    },
+    {
+      "id": "creative-005",
+      "prompt": "Describe a sunset over the mountains in vivid, poetic language.",
+      "expected_specialist": "creative-specialist",
+      "expected_response_contains": ["sun", "mountain", "sky", "color", "gold", "orange", "purple", "horizon"],
+      "difficulty": "easy",
+      "tags": ["descriptive", "nature"]
+    }
+  ]
+}

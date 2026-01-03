@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/bundle-config.schema.json",
+  "title": "Bundle Configuration",
+  "description": "Schema for specialist model bundle definitions",
+  "type": "object",
+  "required": ["name", "version", "specialists"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the bundle"
+    },
+    "version": {
+      "type": "string",
+      "description": "Bundle version (semver)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the bundle's purpose"
+    },
+    "specialists": {
+      "type": "array",
+      "description": "Array of specialist model definitions",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "model", "domains"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this specialist within the bundle"
+          },
+          "model": {
+            "type": "string",
+            "description": "Ollama model identifier (e.g., 'llama3.1:8b', 'codellama:7b-instruct')"
+          },
+          "domains": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "Domains this specialist handles (e.g., 'legal', 'code', 'medical')"
+          },
+          "subdomains": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "More specific subdomains (e.g., 'florida-evidence', 'contract-law')"
+          },
+          "size_class": {
+            "type": "string",
+            "enum": ["tiny", "small", "medium", "large"],
+            "description": "Size classification: tiny (1-3B), small (7-8B), medium (13-14B), large (30B+)"
+          },
+          "parameters_b": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Approximate parameter count in billions"
+          },
+          "specialization": {
+            "type": "string",
+            "description": "Description of specialist training/fine-tuning"
+          },
+          "system_prompt": {
+            "type": "string",
+            "description": "Optional system prompt for this specialist"
+          },
+          "fallback": {
+            "type": "boolean",
+            "default": false,
+            "description": "Use as fallback for unroutable queries"
+          },
+          "keywords": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Keywords for semantic routing matching"
+          }
+        }
+      }
+    },
+    "ensemble_strategy": {
+      "type": "string",
+      "enum": ["single", "voting", "weighted", "chain"],
+      "default": "single",
+      "description": "How to combine multiple specialist responses"
+    },
+    "overlap_handling": {
+      "type": "string",
+      "enum": ["first_match", "highest_confidence", "ensemble"],
+      "default": "highest_confidence",
+      "description": "How to handle queries matching multiple specialists"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional bundle metadata",
+      "properties": {
+        "author": { "type": "string" },
+        "created": { "type": "string", "format": "date-time" },
+        "jurisdiction": { "type": "string" },
+        "use_case": { "type": "string" }
+      }
+    }
+  }
+}

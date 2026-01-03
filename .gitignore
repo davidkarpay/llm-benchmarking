@@ -1,0 +1,45 @@
+# Results (can be large)
+results/raw/*.json
+results/csv/*.csv
+results/reports/*.md
+
+# Keep directory structure
+!results/raw/.gitkeep
+!results/csv/.gitkeep
+!results/reports/.gitkeep
+
+# Test assets (generated images)
+test-assets/vision/generated/
+
+# Node modules (if dashboard uses npm)
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Windows reserved filenames
+nul
+NUL
+
+# External data directories (user-specific)
+FLLawDL2025/
+
+# Misc user files
+*.txt
+.claude/

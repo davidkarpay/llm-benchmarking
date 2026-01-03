@@ -1,0 +1,65 @@
+{
+  "name": "general-purpose-bundle",
+  "version": "1.0.0",
+  "description": "Mixed-size specialists for general-purpose testing across multiple domains",
+  "specialists": [
+    {
+      "id": "code-specialist",
+      "model": "codellama:7b-instruct",
+      "domains": ["code", "programming"],
+      "subdomains": ["generation", "debugging", "algorithms", "explanation"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Code generation, debugging, and programming tasks",
+      "keywords": ["code", "function", "class", "bug", "error", "implement", "algorithm", "python", "javascript", "programming", "debug", "syntax"]
+    },
+    {
+      "id": "reasoning-specialist",
+      "model": "qwen2.5:14b",
+      "domains": ["reasoning", "math"],
+      "subdomains": ["logic", "analysis", "problem-solving", "mathematics"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Multi-step reasoning, logic puzzles, and mathematical problems",
+      "keywords": ["calculate", "solve", "prove", "logic", "reasoning", "math", "equation", "steps", "analyze", "deduce", "therefore", "if-then"]
+    },
+    {
+      "id": "knowledge-specialist",
+      "model": "llama3.1:8b",
+      "domains": ["knowledge", "facts"],
+      "subdomains": ["history", "science", "geography", "general-knowledge"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "Factual knowledge retrieval and encyclopedic queries",
+      "keywords": ["who", "what", "when", "where", "history", "science", "fact", "country", "capital", "discovery", "invented", "famous"]
+    },
+    {
+      "id": "creative-specialist",
+      "model": "mistral:7b-instruct",
+      "domains": ["creative", "writing"],
+      "subdomains": ["poetry", "storytelling", "brainstorming", "copywriting"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Creative writing, storytelling, and content generation",
+      "keywords": ["write", "story", "poem", "creative", "imagine", "describe", "narrative", "character", "plot", "fiction", "essay"]
+    },
+    {
+      "id": "general-fallback",
+      "model": "phi3:3.8b",
+      "domains": ["general"],
+      "subdomains": ["conversation", "simple-queries"],
+      "size_class": "tiny",
+      "parameters_b": 3.8,
+      "specialization": "Fast fallback for simple queries and conversation",
+      "fallback": true,
+      "keywords": ["hello", "help", "explain", "simple", "basic"]
+    }
+  ],
+  "ensemble_strategy": "single",
+  "overlap_handling": "highest_confidence",
+  "metadata": {
+    "author": "benchmark-suite",
+    "created": "2026-01-03T00:00:00Z",
+    "use_case": "General-purpose multi-domain benchmarking"
+  }
+}

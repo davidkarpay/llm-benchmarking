@@ -1,0 +1,53 @@
+{
+  "strategy": "semantic",
+  "semantic_config": {
+    "embedding_model": "nomic-embed-text",
+    "similarity_threshold": 0.15,
+    "use_keywords": true,
+    "domain_signatures": {
+      "code": [
+        "write a function",
+        "implement an algorithm",
+        "debug this code",
+        "what does this code do",
+        "fix the error in",
+        "programming help"
+      ],
+      "reasoning": [
+        "solve this problem",
+        "what is the logical conclusion",
+        "calculate the result",
+        "prove that",
+        "analyze the following",
+        "step by step reasoning"
+      ],
+      "knowledge": [
+        "who invented",
+        "what is the capital of",
+        "when did",
+        "historical fact about",
+        "explain the concept of",
+        "define"
+      ],
+      "creative": [
+        "write a story about",
+        "compose a poem",
+        "imagine a world where",
+        "creative writing prompt",
+        "describe in detail"
+      ],
+      "legal": [
+        "is this admissible",
+        "hearsay exception",
+        "what does the statute say",
+        "legal precedent for",
+        "court ruling on",
+        "evidence code",
+        "civil procedure",
+        "criminal procedure"
+      ]
+    }
+  },
+  "fallback_behavior": "use_fallback_specialist",
+  "routing_timeout_ms": 3000
+}

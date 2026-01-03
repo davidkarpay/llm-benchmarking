@@ -1,0 +1,58 @@
+{
+  "domain": "general",
+  "subdomain": "code",
+  "version": "1.0",
+  "description": "Programming and code-related test cases",
+  "cases": [
+    {
+      "id": "code-001",
+      "prompt": "Write a Python function that reverses a string.",
+      "expected_specialist": "code-specialist",
+      "expected_response_contains": ["def", "return"],
+      "expected_response_regex": "def\\s+\\w+.*:",
+      "difficulty": "easy",
+      "tags": ["python", "strings"]
+    },
+    {
+      "id": "code-002",
+      "prompt": "What is the time complexity of binary search?",
+      "expected_specialist": "code-specialist",
+      "expected_response_contains": ["log", "O("],
+      "difficulty": "easy",
+      "tags": ["algorithms", "complexity"]
+    },
+    {
+      "id": "code-003",
+      "prompt": "Debug this Python code: def add(a, b) return a + b",
+      "expected_specialist": "code-specialist",
+      "expected_response_contains": ["colon", ":"],
+      "difficulty": "easy",
+      "tags": ["debugging", "python"]
+    },
+    {
+      "id": "code-004",
+      "prompt": "Implement a function in JavaScript that checks if a number is prime.",
+      "expected_specialist": "code-specialist",
+      "expected_response_contains": ["function", "return"],
+      "expected_response_regex": "(function|const|let)\\s+\\w+",
+      "difficulty": "medium",
+      "tags": ["javascript", "algorithms"]
+    },
+    {
+      "id": "code-005",
+      "prompt": "Explain the difference between a stack and a queue data structure.",
+      "expected_specialist": "code-specialist",
+      "expected_response_contains": ["LIFO", "FIFO"],
+      "difficulty": "easy",
+      "tags": ["data-structures"]
+    },
+    {
+      "id": "code-006",
+      "prompt": "Write a SQL query to find all employees with a salary greater than 50000.",
+      "expected_specialist": "code-specialist",
+      "expected_response_contains": ["SELECT", "WHERE", "50000"],
+      "difficulty": "easy",
+      "tags": ["sql", "database"]
+    }
+  ]
+}

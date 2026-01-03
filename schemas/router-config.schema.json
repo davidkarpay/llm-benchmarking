@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/router-config.schema.json",
+  "title": "Router Configuration",
+  "description": "Schema for routing strategy configuration",
+  "type": "object",
+  "required": ["strategy"],
+  "properties": {
+    "strategy": {
+      "type": "string",
+      "enum": ["semantic", "classifier", "orchestrator", "hierarchical_moe"],
+      "description": "Routing strategy to use"
+    },
+    "semantic_config": {
+      "type": "object",
+      "description": "Configuration for semantic (embedding-based) routing",
+      "properties": {
+        "embedding_model": {
+          "type": "string",
+          "default": "nomic-embed-text",
+          "description": "Ollama embedding model for similarity matching"
+        },
+        "similarity_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5,
+          "description": "Minimum similarity score to route to a specialist"
+        },
+        "use_keywords": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use specialist keywords for matching"
+        },
+        "domain_signatures": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "description": "Domain -> representative phrases mapping for semantic matching"
+        }
+      }
+    },
+    "classifier_config": {
+      "type": "object",
+      "description": "Configuration for classifier-based routing",
+      "properties": {
+        "classifier_model": {
+          "type": "string",
+          "default": "phi3:3.8b",
+          "description": "Model used for classification"
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7,
+          "description": "Minimum confidence to accept classification"
+        },
+        "classification_prompt": {
+          "type": "string",
+          "description": "Prompt template for classification (use {query} and {domains} placeholders)"
+        }
+      }
+    },
+    "orchestrator_config": {
+      "type": "object",
+      "description": "Configuration for LLM orchestrator-based routing",
+      "properties": {
+        "orchestrator_model": {
+          "type": "string",
+          "default": "phi3:3.8b",
+          "description": "Small LLM used for routing decisions"
+        },
+        "system_prompt": {
+          "type": "string",
+          "description": "System prompt for the orchestrator"
+        },
+        "routing_prompt_template": {
+          "type": "string",
+          "description": "Prompt template for routing (use {query} and {specialists} placeholders)"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "default": 50,
+          "description": "Maximum tokens for routing response"
+        },
+        "allow_multi_specialist": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow routing to multiple specialists"
+        }
+      }
+    },
+    "hierarchical_config": {
+      "type": "object",
+      "description": "Configuration for hierarchical MoE-style routing",
+      "properties": {
+        "gating_model": {
+          "type": "string",
+          "default": "phi3:3.8b",
+          "description": "Model used for gating decisions"
+        },
+        "top_k": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "Number of top specialists to activate"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.1,
+          "description": "Temperature for gating softmax"
+        },
+        "chunk_size": {
+          "type": "integer",
+          "default": 0,
+          "description": "Chunk size for chunk-level routing (0 = query-level only)"
+        }
+      }
+    },
+    "fallback_behavior": {
+      "type": "string",
+      "enum": ["use_fallback_specialist", "use_largest_specialist", "return_error"],
+      "default": "use_fallback_specialist",
+      "description": "What to do when no specialist matches"
+    },
+    "routing_timeout_ms": {
+      "type": "integer",
+      "default": 5000,
+      "description": "Maximum time for routing decision in milliseconds"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "domain": "general",
+  "subdomain": "knowledge",
+  "version": "1.0",
+  "description": "Factual knowledge retrieval test cases",
+  "cases": [
+    {
+      "id": "knowledge-001",
+      "prompt": "What is the capital of Australia?",
+      "expected_specialist": "knowledge-specialist",
+      "expected_response_contains": ["Canberra"],
+      "difficulty": "easy",
+      "tags": ["geography", "capitals"]
+    },
+    {
+      "id": "knowledge-002",
+      "prompt": "Who invented the telephone?",
+      "expected_specialist": "knowledge-specialist",
+      "expected_response_contains": ["Bell", "Alexander"],
+      "difficulty": "easy",
+      "tags": ["history", "inventions"]
+    },
+    {
+      "id": "knowledge-003",
+      "prompt": "What is the chemical symbol for gold and what is its atomic number?",
+      "expected_specialist": "knowledge-specialist",
+      "expected_response_contains": ["Au", "79"],
+      "difficulty": "easy",
+      "tags": ["science", "chemistry"]
+    },
+    {
+      "id": "knowledge-004",
+      "prompt": "In what year did World War II end?",
+      "expected_specialist": "knowledge-specialist",
+      "expected_response_contains": ["1945"],
+      "difficulty": "easy",
+      "tags": ["history", "wars"]
+    },
+    {
+      "id": "knowledge-005",
+      "prompt": "What is the largest planet in our solar system?",
+      "expected_specialist": "knowledge-specialist",
+      "expected_response_contains": ["Jupiter"],
+      "difficulty": "easy",
+      "tags": ["science", "astronomy"]
+    },
+    {
+      "id": "knowledge-006",
+      "prompt": "Who wrote the novel '1984'?",
+      "expected_specialist": "knowledge-specialist",
+      "expected_response_contains": ["Orwell", "George"],
+      "difficulty": "easy",
+      "tags": ["literature", "authors"]
+    },
+    {
+      "id": "knowledge-007",
+      "prompt": "What is the speed of light in a vacuum, approximately?",
+      "expected_specialist": "knowledge-specialist",
+      "expected_response_contains": ["300", "million", "186"],
+      "difficulty": "medium",
+      "tags": ["science", "physics"]
+    }
+  ]
+}

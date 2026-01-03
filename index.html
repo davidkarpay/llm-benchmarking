@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Benchmarks Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --accent: #e94560;
+            --success: #00d26a;
+            --warning: #ffc107;
+            --error: #ff4757;
+            --border: #2a2a4a;
+            --code-bg: #0d1117;
+            --sidebar-width: 240px;
+            --sidebar-collapsed: 48px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            z-index: 100;
+            transition: width 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed);
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 60px;
+        }
+
+        .sidebar-title {
+            font-weight: 600;
+            color: var(--accent);
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-title {
+            opacity: 0;
+            width: 0;
+        }
+
+        .toggle-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .toggle-btn svg {
+            transition: transform 0.3s;
+        }
+
+        .sidebar.collapsed .toggle-btn svg {
+            transform: rotate(180deg);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(233, 69, 96, 0.1);
+            color: var(--accent);
+            border-left-color: var(--accent);
+        }
+
+        .nav-item.active .nav-label {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+        }
+
+        .nav-label {
+            white-space: nowrap;
+            overflow: hidden;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .sidebar.collapsed .nav-label {
+            opacity: 0;
+            width: 0;
+            margin: 0;
+        }
+
+        .sidebar.collapsed .nav-icon {
+            margin-right: 0;
+        }
+
+        .sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 0.75rem;
+        }
+
+        /* Main content */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease;
+            padding: 2rem;
+        }
+
+        .sidebar.collapsed ~ .main-wrapper {
+            margin-left: var(--sidebar-collapsed);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent), #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle { color: var(--text-secondary); font-size: 1.1rem; }
+
+        .hardware-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .hw-item {
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .hw-item span { color: var(--accent); font-weight: 600; }
+
+        main { max-width: 1400px; margin: 0 auto; }
+
+        section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            scroll-margin-top: 2rem;
+        }
+
+        h2 {
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            color: var(--text-primary);
+            margin: 1.5rem 0 1rem;
+            font-size: 1.1rem;
+        }
+
+        .script-block {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .script-name {
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: var(--success);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .script-desc {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            color: #ff79c6;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin: 1rem 0;
+        }
+
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .param-table th, .param-table td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .param-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .param-table td:first-child { color: #8be9fd; font-family: monospace; }
+        .param-table td:nth-child(2) { color: var(--text-secondary); }
+
+        .results-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .result-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--border);
+        }
+
+        .result-card.pass { border-left-color: var(--success); }
+        .result-card.fail { border-left-color: var(--error); }
+        .result-card.warning { border-left-color: var(--warning); }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .result-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .model-name {
+            background: var(--bg-primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .test-name { font-weight: 600; }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pass { background: rgba(0, 210, 106, 0.2); color: var(--success); }
+        .status-badge.fail { background: rgba(255, 71, 87, 0.2); color: var(--error); }
+
+        .metrics {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .metric {
+            font-size: 0.9rem;
+        }
+
+        .metric-label { color: var(--text-secondary); }
+        .metric-value { color: var(--text-primary); font-weight: 600; }
+
+        .reasoning {
+            background: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .reasoning strong { color: var(--text-primary); }
+
+        .response-snippet {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: var(--code-bg);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #a0a0a0;
+            max-height: 100px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .bug-list, .suggestion-list {
+            list-style: none;
+        }
+
+        .bug-list li, .suggestion-list li {
+            background: var(--bg-card);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .bug-title {
+            color: var(--warning);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .bug-status {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .bug-status.fixed { background: rgba(0, 210, 106, 0.2); color: var(--success); }
+        .bug-status.open { background: rgba(255, 71, 87, 0.2); color: var(--error); }
+
+        .suggestion-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .suggestion-list li::before {
+            content: ">";
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .timestamp {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .grade {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            line-height: 2rem;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .grade.A { background: var(--success); color: #000; }
+        .grade.B { background: #4ade80; color: #000; }
+        .grade.C { background: var(--warning); color: #000; }
+        .grade.D { background: var(--error); color: #fff; }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .criteria-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .criteria-table th, .criteria-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .criteria-table th {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .nav-tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:hover { color: var(--text-primary); background: var(--bg-card); }
+        .nav-tab.active { color: var(--accent); background: var(--bg-card); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: var(--sidebar-collapsed);
+            }
+            .sidebar .nav-label,
+            .sidebar .sidebar-title {
+                display: none;
+            }
+            .main-wrapper {
+                margin-left: var(--sidebar-collapsed);
+                padding: 1rem;
+            }
+            .hardware-info { flex-direction: column; align-items: center; }
+            .result-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .metrics { flex-direction: column; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title">Contents</span>
+            <button class="toggle-btn" id="toggleSidebar" title="Toggle sidebar">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M10.354 3.146a.5.5 0 0 1 0 .708L6.207 8l4.147 4.146a.5.5 0 0 1-.708.708l-4.5-4.5a.5.5 0 0 1 0-.708l4.5-4.5a.5.5 0 0 1 .708 0z"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sidebar-nav">
+            <a class="nav-item" href="#usage" data-section="usage">
+                <span class="nav-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M5 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H5zm0 1h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/>
+                        <path d="M6 4h4v1H6V4zm0 2h4v1H6V6zm0 2h4v1H6V8zm0 2h2v1H6v-1z"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Usage Instructions</span>
+            </a>
+            <a class="nav-item" href="#results" data-section="results">
+                <span class="nav-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M4 11a1 1 0 1 1 2 0v1a1 1 0 1 1-2 0v-1zm6-4a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0V7zM7 9a1 1 0 0 1 2 0v3a1 1 0 1 1-2 0V9z"/>
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Test Results</span>
+            </a>
+            <a class="nav-item" href="#bugs" data-section="bugs">
+                <span class="nav-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M4.355.522a.5.5 0 0 1 .623.333l.291.956A4.979 4.979 0 0 1 8 1c1.007 0 1.946.298 2.731.811l.29-.956a.5.5 0 1 1 .957.29l-.41 1.352A4.985 4.985 0 0 1 13 6h.5a.5.5 0 0 1 .5.5V7a.5.5 0 0 1-.5.5H13v1h.5a.5.5 0 0 1 .5.5v.5a.5.5 0 0 1-.5.5H13a5 5 0 0 1-10 0h-.5a.5.5 0 0 1-.5-.5V9a.5.5 0 0 1 .5-.5H3V8h-.5a.5.5 0 0 1-.5-.5v-.5a.5.5 0 0 1 .5-.5H3c0-1.587.59-3.034 1.568-4.139L4.022 1.146a.5.5 0 0 1 .333-.624zM8 2a4 4 0 0 0-4 4v4a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4z"/>
+                        <path d="M6.5 7a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5zm3 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5z"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Known Bugs</span>
+            </a>
+            <a class="nav-item" href="#suggestions" data-section="suggestions">
+                <span class="nav-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Suggested Tests</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <header>
+            <h1>LLM Benchmarks Dashboard</h1>
+            <p class="subtitle">PowerShell-based benchmarking suite for local LLM inference via Ollama</p>
+            <div class="hardware-info" id="hardwareInfo">
+                <div class="hw-item">GPU: <span id="hwGpu">Loading...</span></div>
+                <div class="hw-item">VRAM: <span id="hwVram">--</span> GB</div>
+                <div class="hw-item">RAM: <span id="hwRam">--</span> GB</div>
+                <div class="hw-item">CPU: <span id="hwCpu">Loading...</span></div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Section 1: Usage Instructions -->
+            <section id="usage">
+                <h2>Script Usage Instructions</h2>
+
+                <div class="script-block">
+                    <div class="script-name">benchmark-speed.ps1</div>
+                    <div class="script-desc">Tests LLM inference speed and resource utilization across multiple models</div>
+
+                    <h3>Examples</h3>
+                    <pre># Run with default models
+.\scripts\benchmark-speed.ps1
+
+# Run on specific models
+.\scripts\benchmark-speed.ps1 -Models @("llama3.1:8b", "qwen2.5:32b")
+
+# Skip model pulling (if already downloaded)
+.\scripts\benchmark-speed.ps1 -SkipPull
+
+# Custom prompt
+.\scripts\benchmark-speed.ps1 -Prompt "Write a haiku about coding"</pre>
+
+                    <h3>Parameters</h3>
+                    <table class="param-table">
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>-OutputDir</td>
+                                <td>string</td>
+                                <td><code>.\results</code></td>
+                                <td>Directory to save benchmark results</td>
+                            </tr>
+                            <tr>
+                                <td>-Models</td>
+                                <td>string[]</td>
+                                <td><code>@("llama3.1:8b", "qwen2.5:14b", "qwen2.5:32b", "gpt-oss:120b")</code></td>
+                                <td>Array of Ollama model names to benchmark</td>
+                            </tr>
+                            <tr>
+                                <td>-Prompt</td>
+                                <td>string</td>
+                                <td><code>"Explain the theory of general relativity..."</code></td>
+                                <td>Custom prompt for benchmarking inference</td>
+                            </tr>
+                            <tr>
+                                <td>-SkipPull</td>
+                                <td>switch</td>
+                                <td><code>$false</code></td>
+                                <td>Skip downloading models if already available locally</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="script-block">
+                    <div class="script-name">benchmark-cognitive.ps1</div>
+                    <div class="script-desc">Tests LLM cognitive capabilities: reasoning, memory, and comprehension</div>
+
+                    <h3>Examples</h3>
+                    <pre># Run all cognitive tests on default model
+.\scripts\benchmark-cognitive.ps1
+
+# Run on specific model
+.\scripts\benchmark-cognitive.ps1 -Model "qwen2.5:32b"
+
+# Run specific tests only
+.\scripts\benchmark-cognitive.ps1 -Tests @("needle", "multihop") -Model "llama3.1:8b"</pre>
+
+                    <h3>Parameters</h3>
+                    <table class="param-table">
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>-OutputDir</td>
+                                <td>string</td>
+                                <td><code>.\results</code></td>
+                                <td>Directory to save benchmark results</td>
+                            </tr>
+                            <tr>
+                                <td>-Model</td>
+                                <td>string</td>
+                                <td><code>"gpt-oss:120b"</code></td>
+                                <td>Single model to benchmark</td>
+                            </tr>
+                            <tr>
+                                <td>-Tests</td>
+                                <td>string[]</td>
+                                <td><code>@("needle", "multihop", "memory10", "memory30", "temporal", "forgetting")</code></td>
+                                <td>Subset of tests to run</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Available Tests</h3>
+                    <table class="criteria-table">
+                        <thead>
+                            <tr><th>Test ID</th><th>Name</th><th>Description</th><th>Pass Criteria</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>needle</code></td>
+                                <td>Needle-in-Haystack</td>
+                                <td>Find specific info buried in ~500 tokens of context</td>
+                                <td>Exact code match found</td>
+                            </tr>
+                            <tr>
+                                <td><code>multihop</code></td>
+                                <td>Multi-Hop Reasoning</td>
+                                <td>Connect facts across context (2-hop chains)</td>
+                                <td>&ge;3/4 answers correct</td>
+                            </tr>
+                            <tr>
+                                <td><code>memory10</code></td>
+                                <td>Working Memory (10)</td>
+                                <td>Track 10 entity facts</td>
+                                <td>5/5 correct (100%)</td>
+                            </tr>
+                            <tr>
+                                <td><code>memory30</code></td>
+                                <td>Working Memory (30)</td>
+                                <td>Stress test with 30 entities</td>
+                                <td>&ge;8/10 correct (80%)</td>
+                            </tr>
+                            <tr>
+                                <td><code>temporal</code></td>
+                                <td>Temporal Reasoning</td>
+                                <td>Order events chronologically</td>
+                                <td>Exact order: A, C, B, D, E</td>
+                            </tr>
+                            <tr>
+                                <td><code>forgetting</code></td>
+                                <td>Selective Forgetting</td>
+                                <td>Follow corrections, ignore outdated info</td>
+                                <td>Mentions $8.3M, NOT $5M</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="script-block">
+                    <div class="script-name">test-context-length.ps1</div>
+                    <div class="script-desc">Tests model performance degradation as context length increases</div>
+
+                    <h3>Examples</h3>
+                    <pre># Run context stress test with defaults
+.\scripts\test-context-length.ps1
+
+# Test specific context sizes
+.\scripts\test-context-length.ps1 -Sizes @(1000, 5000, 10000, 20000) -Model "qwen2.5:32b"
+
+# Test different model
+.\scripts\test-context-length.ps1 -Model "llama3.1:8b"</pre>
+
+                    <h3>Parameters</h3>
+                    <table class="param-table">
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>-OutputDir</td>
+                                <td>string</td>
+                                <td><code>.\results</code></td>
+                                <td>Directory to save benchmark results</td>
+                            </tr>
+                            <tr>
+                                <td>-Model</td>
+                                <td>string</td>
+                                <td><code>"gpt-oss:120b"</code></td>
+                                <td>Model to test</td>
+                            </tr>
+                            <tr>
+                                <td>-Sizes</td>
+                                <td>int[]</td>
+                                <td><code>@(2000, 8000, 16000, 32000, 64000)</code></td>
+                                <td>Array of token counts to test</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section 2: Test Results Log -->
+            <section id="results">
+                <h2>Test Results Log</h2>
+
+                <div class="nav-tabs">
+                    <button class="nav-tab active" data-tab="cognitive">Cognitive Tests</button>
+                    <button class="nav-tab" data-tab="speed">Speed Benchmarks</button>
+                    <button class="nav-tab" data-tab="context">Context Stress</button>
+                </div>
+
+                <div id="cognitiveResults" class="tab-content active">
+                    <div class="loading">Loading results...</div>
+                </div>
+
+                <div id="speedResults" class="tab-content">
+                    <div class="loading">Loading results...</div>
+                </div>
+
+                <div id="contextResults" class="tab-content">
+                    <div class="loading">Loading results...</div>
+                </div>
+            </section>
+
+            <!-- Section 3: Known Bugs -->
+            <section id="bugs">
+                <h2>Known Bugs & Issues</h2>
+                <ul class="bug-list">
+                    <li>
+                        <div class="bug-title">Dollar Sign Interpolation <span class="bug-status fixed">FIXED</span></div>
+                        <p><code>$8.3</code> was being parsed as <code>.3</code> in PowerShell double-quoted here-strings. The <code>$8</code> was interpreted as an undefined variable.</p>
+                        <p><strong>Fix:</strong> Changed from double-quoted (<code>@"..."@</code>) to single-quoted (<code>@'...'@</code>) here-strings in the selective forgetting test prompt.</p>
+                    </li>
+                    <li>
+                        <div class="bug-title">Export-ModuleMember Error <span class="bug-status fixed">FIXED</span></div>
+                        <p><code>Export-ModuleMember</code> is a module-only cmdlet that fails when used in a dot-sourced script.</p>
+                        <p><strong>Fix:</strong> Removed the cmdlet from <code>Export-BenchmarkResult.ps1</code> since it's dot-sourced, not imported as a module.</p>
+                    </li>
+                    <li>
+                        <div class="bug-title">Windows Command-Line Limit <span class="bug-status fixed">FIXED</span></div>
+                        <p>Large prompts exceeded the 8191 character Windows command-line limit when passed as arguments to <code>ollama run</code>.</p>
+                        <p><strong>Fix:</strong> Changed from argument passing to stdin piping using temporary files for large context prompts.</p>
+                    </li>
+                    <li>
+                        <div class="bug-title">ANSI Escape Codes in Output <span class="bug-status open">OPEN</span></div>
+                        <p>Raw Ollama output contains terminal control characters (cursor movement, colors) that pollute JSON response snippets.</p>
+                        <p><strong>Workaround:</strong> Currently truncating responses. Could add regex filtering to strip ANSI sequences.</p>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Section 4: Suggested Additional Tests -->
+            <section id="suggestions">
+                <h2>Suggested Additional Tests</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">These tests would help identify model limits and capabilities more thoroughly:</p>
+                <ul class="suggestion-list">
+                    <li><strong>Context length on more models</strong> - Run test-context-length.ps1 on llama3.1:8b, qwen2.5:14b, qwen2.5:32b to compare effective context windows</li>
+                    <li><strong>Needle position comparison</strong> - Test needle-at-start vs needle-in-middle vs needle-at-end to quantify the "lost in the middle" effect</li>
+                    <li><strong>Large working memory (50+ entities)</strong> - Stress test entity tracking with 50-100 facts to find the breaking point</li>
+                    <li><strong>Multi-turn conversation memory</strong> - Test if models maintain context across multiple back-and-forth exchanges</li>
+                    <li><strong>Code generation accuracy</strong> - Generate functions with specific requirements and run unit tests on output</li>
+                    <li><strong>Math reasoning test</strong> - Multi-step arithmetic and word problems to test calculation capabilities</li>
+                    <li><strong>Instruction following precision</strong> - Test exact format compliance (JSON output, specific word limits, etc.)</li>
+                    <li><strong>Quantization comparison</strong> - Same model at different quantization levels (Q4, Q5, Q8, FP16) to measure quality/speed tradeoff</li>
+                    <li><strong>Concurrent request stress test</strong> - Multiple simultaneous requests to measure throughput under load</li>
+                    <li><strong>Cold start vs warm cache</strong> - First-run latency vs subsequent runs with model already loaded</li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggleSidebar');
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        });
+
+        // Restore sidebar state
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+
+        // Intersection Observer for active section tracking
+        const sections = document.querySelectorAll('section[id]');
+        const navItems = document.querySelectorAll('.nav-item[data-section]');
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -60% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const sectionId = entry.target.id;
+                    navItems.forEach(item => {
+                        if (item.dataset.section === sectionId) {
+                            item.classList.add('active');
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => observer.observe(section));
+
+        // Smooth scroll for nav items
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = item.getAttribute('href').slice(1);
+                const target = document.getElementById(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Result files manifest - add new files here as they're generated
+        const RESULT_FILES = {
+            cognitive: [
+                'results/raw/2026-01-02_010135_cognitive_benchmark.json',
+                'results/raw/2026-01-03_004511_cognitive_benchmark.json',
+                'results/raw/2026-01-03_004722_cognitive_benchmark.json',
+                'results/raw/2026-01-03_011643_cognitive_benchmark.json',
+                'results/raw/2026-01-03_011655_cognitive_benchmark.json'
+            ],
+            speed: [
+                'results/raw/2026-01-02_005430_speed_benchmark.json'
+            ],
+            context: [
+                'results/raw/2026-01-02_010357_context_stress.json',
+                'results/raw/2026-01-02_011451_context_stress.json'
+            ]
+        };
+
+        // Pass/fail reasoning templates
+        const REASONING = {
+            needle_in_haystack: {
+                pass: "The model correctly identified and returned the exact secret code 'DELTA-SUNRISE-4821' from within the context.",
+                fail: "The model failed to locate or return the exact secret code from the surrounding context."
+            },
+            multi_hop_reasoning: {
+                pass: (metrics) => `Connected ${metrics.correct}/4 facts correctly across 2-hop reasoning chains. Required connecting Sarah -> Company -> CEO -> Wife -> Instrument/Venue.`,
+                fail: (metrics) => `Only connected ${metrics.correct}/4 facts. Failed to trace the full relationship chain across multiple entities.`
+            },
+            working_memory_10: {
+                pass: "Successfully tracked and recalled all 10 entity-attribute pairs from the context.",
+                fail: (metrics) => `Only recalled ${metrics.correct}/5 entity facts. Working memory capacity exceeded for basic entity tracking.`
+            },
+            working_memory_30: {
+                pass: (metrics) => `Excellent memory: ${metrics.correct}/10 correct (${metrics.accuracy}%). Successfully handled 30 concurrent entity-attribute pairs.`,
+                fail: (metrics) => `Memory degradation: Only ${metrics.correct}/10 correct (${metrics.accuracy}%). 30 entities exceeds reliable tracking capacity.`
+            },
+            temporal_reasoning: {
+                pass: "Correctly derived the event order (A, C, B, D, E) from the logical constraints provided.",
+                fail: "Failed to correctly sequence events based on the temporal constraints. Expected order: A, C, B, D, E."
+            },
+            selective_forgetting: {
+                pass: "Correctly reported the corrected value ($8.3M) and ignored the outdated preliminary figure.",
+                fail: "Failed to follow the correction. Either mentioned the wrong value ($5M) or couldn't find the corrected figure."
+            }
+        };
+
+        // Speed grade thresholds
+        function getSpeedGrade(tokensPerSecond) {
+            if (tokensPerSecond >= 30) return 'A';
+            if (tokensPerSecond >= 10) return 'B';
+            if (tokensPerSecond >= 3) return 'C';
+            return 'D';
+        }
+
+        // Tab switching
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + 'Results').classList.add('active');
+            });
+        });
+
+        // Fetch and render results
+        async function loadResults() {
+            await loadCognitiveResults();
+            await loadSpeedResults();
+            await loadContextResults();
+        }
+
+        async function loadCognitiveResults() {
+            const container = document.getElementById('cognitiveResults');
+            let allResults = [];
+
+            for (const file of RESULT_FILES.cognitive) {
+                try {
+                    const response = await fetch(file);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.meta && !document.getElementById('hwGpu').textContent.includes('RTX')) {
+                            updateHardwareInfo(data.meta.hardware);
+                        }
+                        allResults.push({ file, data, timestamp: data.meta?.timestamp });
+                    }
+                } catch (e) {
+                    console.warn(`Failed to load ${file}:`, e);
+                }
+            }
+
+            if (allResults.length === 0) {
+                container.innerHTML = '<div class="loading">No cognitive test results found. Run benchmark-cognitive.ps1 to generate results.</div>';
+                return;
+            }
+
+            // Sort by timestamp descending
+            allResults.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            let html = '<div class="results-grid">';
+            for (const { data, timestamp } of allResults) {
+                for (const result of data.results) {
+                    const statusClass = result.pass ? 'pass' : 'fail';
+                    const statusText = result.pass ? 'PASS' : 'FAIL';
+
+                    let reasoning = '';
+                    const reasoningFn = REASONING[result.test_name];
+                    if (reasoningFn) {
+                        if (typeof reasoningFn === 'object') {
+                            reasoning = result.pass ? reasoningFn.pass : (typeof reasoningFn.fail === 'function' ? reasoningFn.fail(result.metrics) : reasoningFn.fail);
+                        } else if (typeof reasoningFn === 'function') {
+                            reasoning = reasoningFn(result.metrics, result.pass);
+                        }
+                    }
+
+                    html += `
+                        <div class="result-card ${statusClass}">
+                            <div class="result-header">
+                                <div class="result-title">
+                                    <span class="model-name">${result.model}</span>
+                                    <span class="test-name">${formatTestName(result.test_name)}</span>
+                                </div>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                            <div class="metrics">
+                                ${renderMetrics(result.metrics)}
+                            </div>
+                            <div class="reasoning">
+                                <strong>Reasoning:</strong> ${reasoning}
+                            </div>
+                            ${result.response ? `<div class="response-snippet">${escapeHtml(cleanResponse(result.response))}</div>` : ''}
+                            <div class="timestamp">${formatTimestamp(timestamp)}</div>
+                        </div>
+                    `;
+                }
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function loadSpeedResults() {
+            const container = document.getElementById('speedResults');
+            let allResults = [];
+
+            for (const file of RESULT_FILES.speed) {
+                try {
+                    const response = await fetch(file);
+                    if (response.ok) {
+                        const data = await response.json();
+                        allResults.push({ file, data, timestamp: data.meta?.timestamp });
+                    }
+                } catch (e) {
+                    console.warn(`Failed to load ${file}:`, e);
+                }
+            }
+
+            if (allResults.length === 0) {
+                container.innerHTML = '<div class="loading">No speed benchmark results found. Run benchmark-speed.ps1 to generate results.</div>';
+                return;
+            }
+
+            let html = '<div class="results-grid">';
+            for (const { data, timestamp } of allResults) {
+                for (const result of data.results) {
+                    const tokPerSec = result.metrics?.tokens_per_second || result.tokens_per_second;
+                    const grade = getSpeedGrade(tokPerSec);
+                    const statusClass = grade === 'A' || grade === 'B' ? 'pass' : (grade === 'C' ? 'warning' : 'fail');
+
+                    html += `
+                        <div class="result-card ${statusClass}">
+                            <div class="result-header">
+                                <div class="result-title">
+                                    <span class="model-name">${result.model}</span>
+                                    <span class="test-name">Speed Benchmark</span>
+                                </div>
+                                <span class="grade ${grade}">${grade}</span>
+                            </div>
+                            <div class="metrics">
+                                <div class="metric"><span class="metric-label">Tokens/sec:</span> <span class="metric-value">${tokPerSec}</span></div>
+                                <div class="metric"><span class="metric-label">Parameters:</span> <span class="metric-value">${result.parameters_b || result.metrics?.parameters_b}B</span></div>
+                                <div class="metric"><span class="metric-label">Quantization:</span> <span class="metric-value">${result.quantization || result.metrics?.quantization}</span></div>
+                                <div class="metric"><span class="metric-label">GPU:</span> <span class="metric-value">${result.gpu_percent || result.metrics?.gpu_percent}%</span></div>
+                                <div class="metric"><span class="metric-label">VRAM:</span> <span class="metric-value">${result.vram_used_gb || result.metrics?.vram_used_gb} GB</span></div>
+                            </div>
+                            <div class="reasoning">
+                                <strong>Reasoning:</strong> Grade ${grade} based on ${tokPerSec} tok/s.
+                                ${grade === 'A' ? 'Excellent for interactive use.' :
+                                  grade === 'B' ? 'Usable with slight delay.' :
+                                  grade === 'C' ? 'Noticeable wait times.' : 'Suitable for batch processing only.'}
+                                ${(result.gpu_percent || result.metrics?.gpu_percent) < 100 ? ` Note: ${100 - (result.gpu_percent || result.metrics?.gpu_percent)}% CPU offload due to VRAM limits.` : ''}
+                            </div>
+                            <div class="timestamp">${formatTimestamp(timestamp)}</div>
+                        </div>
+                    `;
+                }
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function loadContextResults() {
+            const container = document.getElementById('contextResults');
+            let allResults = [];
+
+            for (const file of RESULT_FILES.context) {
+                try {
+                    const response = await fetch(file);
+                    if (response.ok) {
+                        const data = await response.json();
+                        allResults.push({ file, data, timestamp: data.meta?.timestamp });
+                    }
+                } catch (e) {
+                    console.warn(`Failed to load ${file}:`, e);
+                }
+            }
+
+            if (allResults.length === 0) {
+                container.innerHTML = '<div class="loading">No context stress test results found. Run test-context-length.ps1 to generate results.</div>';
+                return;
+            }
+
+            // Get latest result set
+            allResults.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const latestData = allResults[0].data;
+
+            let html = '<div class="results-grid">';
+            html += `<div class="result-card warning" style="border-left-color: var(--accent);">
+                <h3 style="margin-bottom: 1rem;">Context Length Analysis</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    <strong>Critical Finding:</strong> The model exhibits severe "lost in the middle" degradation.
+                    Despite claiming 128K context support, reliable information retrieval fails beyond ~2,000 tokens.
+                </p>
+            </div>`;
+
+            for (const result of latestData.results) {
+                const statusClass = result.pass ? 'pass' : 'fail';
+                const statusText = result.pass ? 'FOUND' : 'LOST';
+                const targetTokens = result.target_tokens || result.metrics?.target_tokens;
+                const estimatedTokens = result.estimated_tokens || result.metrics?.estimated_tokens;
+                const needleFound = result.needle_found ?? result.pass;
+
+                html += `
+                    <div class="result-card ${statusClass}">
+                        <div class="result-header">
+                            <div class="result-title">
+                                <span class="model-name">${result.model || latestData.results[0].model}</span>
+                                <span class="test-name">~${(targetTokens/1000).toFixed(0)}K Tokens</span>
+                            </div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="metrics">
+                            <div class="metric"><span class="metric-label">Target:</span> <span class="metric-value">${targetTokens?.toLocaleString()} tokens</span></div>
+                            <div class="metric"><span class="metric-label">Estimated:</span> <span class="metric-value">${estimatedTokens?.toLocaleString()} tokens</span></div>
+                            <div class="metric"><span class="metric-label">Time:</span> <span class="metric-value">${result.total_time_seconds || result.metrics?.total_time_seconds}s</span></div>
+                            <div class="metric"><span class="metric-label">Time/1K:</span> <span class="metric-value">${result.time_per_1k_tokens || result.metrics?.time_per_1k_tokens}s</span></div>
+                        </div>
+                        <div class="reasoning">
+                            <strong>Reasoning:</strong> ${needleFound ?
+                                'Needle successfully retrieved from context. Model maintained attention at this context length.' :
+                                'Needle NOT found. Context length exceeds effective attention span. Information placed in middle of context was lost.'}
+                        </div>
+                        <div class="timestamp">${formatTimestamp(allResults[0].timestamp)}</div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Helper functions
+        function formatTestName(name) {
+            return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        function formatTimestamp(ts) {
+            if (!ts) return '';
+            const date = new Date(ts);
+            return date.toLocaleString();
+        }
+
+        function renderMetrics(metrics) {
+            if (!metrics) return '';
+            const items = [];
+            if (metrics.accuracy !== undefined) items.push(`<div class="metric"><span class="metric-label">Accuracy:</span> <span class="metric-value">${metrics.accuracy}%</span></div>`);
+            if (metrics.correct !== undefined && metrics.questions !== undefined) items.push(`<div class="metric"><span class="metric-label">Score:</span> <span class="metric-value">${metrics.correct}/${metrics.questions}</span></div>`);
+            if (metrics.entities !== undefined) items.push(`<div class="metric"><span class="metric-label">Entities:</span> <span class="metric-value">${metrics.entities}</span></div>`);
+            if (metrics.context_tokens !== undefined) items.push(`<div class="metric"><span class="metric-label">Context:</span> <span class="metric-value">~${metrics.context_tokens} tokens</span></div>`);
+            if (metrics.hops_required !== undefined) items.push(`<div class="metric"><span class="metric-label">Hops:</span> <span class="metric-value">${metrics.hops_required}</span></div>`);
+            return items.join('');
+        }
+
+        function cleanResponse(response) {
+            // Remove ANSI escape codes
+            return response.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/[\x00-\x1F]/g, ' ').trim();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateHardwareInfo(hw) {
+            if (!hw) return;
+            if (hw.gpu) document.getElementById('hwGpu').textContent = hw.gpu;
+            if (hw.vram_gb) document.getElementById('hwVram').textContent = hw.vram_gb;
+            if (hw.ram_gb) document.getElementById('hwRam').textContent = hw.ram_gb;
+            if (hw.cpu) document.getElementById('hwCpu').textContent = hw.cpu.trim();
+        }
+
+        // Initialize
+        loadResults();
+    </script>
+</body>
+</html>

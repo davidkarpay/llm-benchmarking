@@ -1,0 +1,12 @@
+{
+  "strategy": "orchestrator",
+  "orchestrator_config": {
+    "orchestrator_model": "phi3:3.8b",
+    "system_prompt": "You are a routing assistant. Your job is to analyze user queries and decide which specialist should handle them. You must respond with ONLY the specialist ID.",
+    "routing_prompt_template": "Available specialists:\n{specialists}\n\nUser query: {query}\n\nWhich specialist should handle this query? Respond with ONLY the specialist ID (e.g., 'code-specialist'):",
+    "max_tokens": 30,
+    "allow_multi_specialist": false
+  },
+  "fallback_behavior": "use_fallback_specialist",
+  "routing_timeout_ms": 5000
+}

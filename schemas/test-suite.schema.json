@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/test-suite.schema.json",
+  "title": "Test Suite",
+  "description": "Schema for domain-specific benchmark test suites",
+  "type": "object",
+  "required": ["domain", "version", "cases"],
+  "properties": {
+    "domain": {
+      "type": "string",
+      "description": "Primary domain (e.g., 'legal', 'medical', 'code', 'general')"
+    },
+    "subdomain": {
+      "type": "string",
+      "description": "Specific subdomain (e.g., 'florida-evidence', 'malpractice')"
+    },
+    "jurisdiction": {
+      "type": "string",
+      "description": "Jurisdiction if applicable (e.g., 'florida', 'federal')"
+    },
+    "version": {
+      "type": "string",
+      "description": "Test suite version"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the test suite"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "created": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "description": "Source of test cases (e.g., 'Florida Bar Exam 2023')" },
+        "difficulty_distribution": {
+          "type": "object",
+          "properties": {
+            "easy": { "type": "integer" },
+            "medium": { "type": "integer" },
+            "hard": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "description": "Array of test cases",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "prompt", "expected_specialist"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique test case identifier"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The query/prompt to test"
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional additional context to prepend to prompt"
+          },
+          "expected_specialist": {
+            "type": "string",
+            "description": "ID of the specialist that should handle this query"
+          },
+          "expected_response_contains": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Strings that should appear in a correct response"
+          },
+          "expected_response_not_contains": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Strings that should NOT appear in a correct response"
+          },
+          "expected_response_regex": {
+            "type": "string",
+            "description": "Regex pattern the response should match"
+          },
+          "ground_truth": {
+            "type": "string",
+            "description": "The canonical correct answer"
+          },
+          "reference_answer": {
+            "type": "string",
+            "description": "A reference answer for comparison"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"],
+            "default": "medium",
+            "description": "Difficulty level of the test case"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Tags for categorization (e.g., 'hearsay', 'privilege', 'statute')"
+          },
+          "citation": {
+            "type": "string",
+            "description": "Legal citation if applicable (e.g., 'Fla. Stat. 90.803(1)')"
+          },
+          "reasoning_steps": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of reasoning steps required"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1,
+            "description": "Weight for scoring purposes"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "name": "legal-florida-bundle",
+  "version": "1.0.0",
+  "description": "Florida jurisdiction legal specialists - placeholder for post-trained models",
+  "specialists": [
+    {
+      "id": "fl-evidence-specialist",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["evidence", "admissibility", "hearsay", "privilege"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "Florida Evidence Code (Chapter 90) - hearsay exceptions, privileges, authentication",
+      "keywords": ["evidence", "admissible", "hearsay", "witness", "testimony", "privilege", "authentication", "relevance", "90."]
+    },
+    {
+      "id": "fl-civil-procedure-specialist",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["civil-procedure", "pleadings", "discovery", "motions"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "Florida Rules of Civil Procedure - pleadings, discovery, summary judgment",
+      "keywords": ["motion", "complaint", "answer", "discovery", "deposition", "interrogatory", "summary judgment", "pleading", "service", "filing"]
+    },
+    {
+      "id": "fl-criminal-procedure-specialist",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["criminal-procedure", "rights", "sentencing", "appeals"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "Florida Rules of Criminal Procedure - arraignment, trial, sentencing",
+      "keywords": ["criminal", "defendant", "prosecutor", "arraignment", "plea", "sentencing", "appeal", "miranda", "bail", "indictment"]
+    },
+    {
+      "id": "fl-statutes-specialist",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["statutes", "regulations", "statutory-interpretation"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Florida Statutes interpretation and application",
+      "keywords": ["statute", "section", "chapter", "florida statutes", "fla. stat.", "legislative intent", "statutory", "enacted"]
+    },
+    {
+      "id": "fl-case-law-specialist",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["case-law", "precedent", "holdings", "dicta"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Florida Supreme Court and DCA decisional law, SCOTUS precedent",
+      "keywords": ["case", "holding", "precedent", "court", "judge", "ruling", "appeal", "affirmed", "reversed", "remanded", "stare decisis"]
+    },
+    {
+      "id": "legal-reasoning-fallback",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["general-legal"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "General legal reasoning fallback",
+      "fallback": true,
+      "keywords": ["legal", "law", "attorney", "court", "judge"]
+    }
+  ],
+  "ensemble_strategy": "single",
+  "overlap_handling": "highest_confidence",
+  "metadata": {
+    "author": "benchmark-suite",
+    "created": "2026-01-03T00:00:00Z",
+    "jurisdiction": "florida",
+    "use_case": "Florida legal domain benchmarking"
+  }
+}

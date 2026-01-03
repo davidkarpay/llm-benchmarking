@@ -1,0 +1,384 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/llm-benchmark-result.schema.json",
+  "title": "LLM Benchmark Result",
+  "description": "Schema for LLM benchmark results including hardware and cognitive tests",
+  "type": "object",
+  "required": ["meta", "test", "results"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Metadata about the benchmark run",
+      "required": ["timestamp", "hostname", "hardware"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of when the benchmark was run"
+        },
+        "hostname": {
+          "type": "string",
+          "description": "Name of the machine running the benchmark"
+        },
+        "hardware": {
+          "type": "object",
+          "description": "Hardware specifications of the test machine",
+          "properties": {
+            "gpu": {
+              "type": "string",
+              "description": "GPU model name"
+            },
+            "vram_gb": {
+              "type": "number",
+              "minimum": 0,
+              "description": "GPU VRAM in gigabytes"
+            },
+            "ram_gb": {
+              "type": "number",
+              "minimum": 0,
+              "description": "System RAM in gigabytes"
+            },
+            "cpu": {
+              "type": "string",
+              "description": "CPU model name"
+            }
+          }
+        },
+        "schema_version": {
+          "type": "string",
+          "description": "Version of this schema"
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "description": "Information about the test being run",
+      "required": ["name", "category"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the benchmark test",
+          "examples": ["speed_benchmark", "cognitive_benchmark", "context_stress", "vision_benchmark"]
+        },
+        "category": {
+          "type": "string",
+          "enum": ["hardware", "cognitive", "vision", "bundle", "routing", "domain", "frontier_comparison"],
+          "description": "Category of the test"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the test suite"
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "description": "Array of individual test results",
+      "items": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model identifier (e.g., 'gpt-oss:120b')"
+          },
+          "test_name": {
+            "type": "string",
+            "description": "Name of the specific test (for cognitive tests)"
+          },
+          "parameters_b": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Model parameter count in billions"
+          },
+          "quantization": {
+            "type": "string",
+            "description": "Quantization format (e.g., 'Q4_K_M', 'MXFP4')"
+          },
+          "metrics": {
+            "type": "object",
+            "description": "Measured metrics for this result",
+            "properties": {
+              "tokens_per_second": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Generation speed in tokens per second"
+              },
+              "time_to_first_token_ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Latency to first token in milliseconds"
+              },
+              "total_time_seconds": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Total response time in seconds"
+              },
+              "gpu_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Percentage of model layers on GPU"
+              },
+              "cpu_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Percentage of model layers on CPU"
+              },
+              "vram_used_gb": {
+                "type": "number",
+                "minimum": 0,
+                "description": "VRAM usage in gigabytes"
+              },
+              "ram_used_gb": {
+                "type": "number",
+                "minimum": 0,
+                "description": "System RAM usage in gigabytes"
+              },
+              "context_tokens": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of context tokens used"
+              },
+              "accuracy": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Accuracy percentage for cognitive tests"
+              },
+              "entities": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of entities tracked (working memory test)"
+              },
+              "hops_required": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of reasoning hops required"
+              },
+              "needle_position": {
+                "type": "string",
+                "description": "Position of needle in haystack test"
+              },
+              "found": {
+                "type": "boolean",
+                "description": "Whether the needle was found"
+              },
+              "correct": {
+                "type": "boolean",
+                "description": "Whether the answer was correct"
+              },
+              "image_path": {
+                "type": "string",
+                "description": "Path to the test image (vision tests)"
+              },
+              "expected_text": {
+                "type": "string",
+                "description": "Expected OCR text (vision tests)"
+              },
+              "detected_text": {
+                "type": "string",
+                "description": "Text detected by the model (vision tests)"
+              },
+              "expected_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Expected object count (vision tests)"
+              },
+              "expected_colors": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Expected colors in order (vision tests)"
+              },
+              "colors_correct": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of colors correctly identified (vision tests)"
+              }
+            }
+          },
+          "pass": {
+            "type": "boolean",
+            "description": "Whether the test passed"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes or observations"
+          },
+          "response": {
+            "type": "string",
+            "description": "Truncated model response for verification"
+          },
+          "bundle_config": {
+            "type": "object",
+            "description": "Bundle configuration used for this test (bundle tests only)",
+            "properties": {
+              "bundle_name": {
+                "type": "string",
+                "description": "Name of the bundle configuration"
+              },
+              "bundle_version": {
+                "type": "string",
+                "description": "Version of the bundle configuration"
+              },
+              "specialists": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "model": { "type": "string" },
+                    "domain": { "type": "string" },
+                    "parameters_b": { "type": "number" }
+                  }
+                },
+                "description": "Specialists in the bundle"
+              },
+              "total_parameters_b": {
+                "type": "number",
+                "description": "Total parameters across all specialists"
+              },
+              "active_parameters_b": {
+                "type": "number",
+                "description": "Parameters of selected specialist(s) for this query"
+              }
+            }
+          },
+          "routing": {
+            "type": "object",
+            "description": "Routing decision details (bundle/routing tests only)",
+            "properties": {
+              "strategy": {
+                "type": "string",
+                "enum": ["semantic", "classifier", "orchestrator", "hierarchical_moe", "oracle"],
+                "description": "Routing strategy used"
+              },
+              "router_model": {
+                "type": "string",
+                "description": "Model used for routing (if applicable)"
+              },
+              "selected_specialist": {
+                "type": "string",
+                "description": "ID of the specialist selected"
+              },
+              "expected_specialist": {
+                "type": "string",
+                "description": "ID of the specialist that should have been selected"
+              },
+              "routing_latency_ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Time taken for routing decision in milliseconds"
+              },
+              "routing_confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Confidence score of routing decision"
+              },
+              "routing_correct": {
+                "type": "boolean",
+                "description": "Whether the correct specialist was selected"
+              },
+              "alternative_specialists": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Other specialists considered"
+              }
+            }
+          },
+          "domain": {
+            "type": "object",
+            "description": "Domain information (domain tests only)",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Primary domain"
+              },
+              "subdomain": {
+                "type": "string",
+                "description": "Subdomain"
+              },
+              "jurisdiction": {
+                "type": "string",
+                "description": "Jurisdiction if applicable"
+              },
+              "difficulty": {
+                "type": "string",
+                "enum": ["easy", "medium", "hard"],
+                "description": "Test case difficulty"
+              }
+            }
+          },
+          "frontier_comparison": {
+            "type": "object",
+            "description": "Frontier model comparison data (frontier tests only)",
+            "properties": {
+              "frontier_model": {
+                "type": "string",
+                "description": "Frontier model used for comparison"
+              },
+              "frontier_response": {
+                "type": "string",
+                "description": "Truncated frontier model response"
+              },
+              "frontier_latency_ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Frontier model response time"
+              },
+              "frontier_cost_usd": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Cost of frontier API call in USD"
+              },
+              "bundle_wins": {
+                "type": "boolean",
+                "description": "Whether bundle outperformed frontier"
+              },
+              "quality_delta": {
+                "type": "number",
+                "description": "Quality difference (bundle - frontier)"
+              },
+              "cost_ratio": {
+                "type": "number",
+                "description": "Cost ratio (frontier / bundle)"
+              },
+              "comparison_method": {
+                "type": "string",
+                "enum": ["live_api", "published_benchmark"],
+                "description": "How comparison was performed"
+              }
+            }
+          },
+          "cost_efficiency": {
+            "type": "object",
+            "description": "Cost and efficiency metrics",
+            "properties": {
+              "active_parameters_b": {
+                "type": "number",
+                "description": "Active parameters for this query"
+              },
+              "vram_usage_gb": {
+                "type": "number",
+                "description": "VRAM used for inference"
+              },
+              "inference_time_ms": {
+                "type": "number",
+                "description": "Total inference time"
+              },
+              "tokens_generated": {
+                "type": "integer",
+                "description": "Number of tokens generated"
+              },
+              "tokens_per_second": {
+                "type": "number",
+                "description": "Generation speed"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

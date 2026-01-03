@@ -1,0 +1,12 @@
+{
+  "strategy": "hierarchical_moe",
+  "hierarchical_config": {
+    "gating_model": "phi3:3.8b",
+    "top_k": 2,
+    "temperature": 0.1,
+    "chunk_size": 0,
+    "gating_prompt": "Rate the relevance of each specialist (0-10) for handling this query:\n\nQuery: {query}\n\nSpecialists:\n{specialists}\n\nRespond with JSON: {{\"specialist_id\": score, ...}}"
+  },
+  "fallback_behavior": "use_largest_specialist",
+  "routing_timeout_ms": 8000
+}

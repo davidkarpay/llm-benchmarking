@@ -1,0 +1,140 @@
+{
+  "$schema": "../schemas/test-suite.schema.json",
+  "domain": "legal",
+  "subdomain": "{{SUBDOMAIN}}",
+  "jurisdiction": "{{JURISDICTION}}",
+  "version": "1.0",
+  "description": "Legal domain test template - replace {{PLACEHOLDERS}} with jurisdiction-specific values",
+  "metadata": {
+    "author": "benchmark-suite",
+    "template_version": "1.0",
+    "required_adaptations": [
+      "statute_citations",
+      "court_hierarchy",
+      "procedural_rules",
+      "case_law_format"
+    ],
+    "jurisdiction_variables": {
+      "JURISDICTION": "Full jurisdiction name (e.g., 'Florida', 'California', 'Federal')",
+      "JURISDICTION_ABBREV": "Standard abbreviation (e.g., 'Fla.', 'Cal.', 'Fed.')",
+      "EVIDENCE_CODE_CHAPTER": "Chapter number for evidence code",
+      "HIGHEST_COURT": "Name of highest court (e.g., 'Florida Supreme Court')",
+      "INTERMEDIATE_COURT": "Name of intermediate appellate court",
+      "TRIAL_COURT": "Name of trial-level courts"
+    }
+  },
+  "test_categories": [
+    {
+      "category": "evidence",
+      "description": "Evidence admissibility and rules of evidence",
+      "question_templates": [
+        {
+          "id": "evidence-hearsay-001",
+          "template": "Under {{JURISDICTION}} Evidence Code, is the following statement admissible: '{{STATEMENT}}'? The statement was made by {{DECLARANT}} under {{CIRCUMSTANCES}}.",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-evidence-specialist",
+          "variables": ["STATEMENT", "DECLARANT", "CIRCUMSTANCES"],
+          "tags": ["hearsay", "admissibility"]
+        },
+        {
+          "id": "evidence-privilege-001",
+          "template": "Does {{JURISDICTION}} recognize {{PRIVILEGE_TYPE}} privilege? Under what circumstances can it be waived?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-evidence-specialist",
+          "variables": ["PRIVILEGE_TYPE"],
+          "tags": ["privilege", "waiver"]
+        },
+        {
+          "id": "evidence-exception-001",
+          "template": "What hearsay exceptions are available under {{JURISDICTION}} Evidence Code {{EVIDENCE_CODE_CHAPTER}} for {{EXCEPTION_SCENARIO}}?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-evidence-specialist",
+          "variables": ["EXCEPTION_SCENARIO"],
+          "tags": ["hearsay-exception"]
+        }
+      ]
+    },
+    {
+      "category": "civil-procedure",
+      "description": "Civil procedural rules and requirements",
+      "question_templates": [
+        {
+          "id": "civpro-pleading-001",
+          "template": "What are the requirements for a complaint under {{JURISDICTION}} Rules of Civil Procedure?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-civil-procedure-specialist",
+          "tags": ["pleading", "complaint"]
+        },
+        {
+          "id": "civpro-discovery-001",
+          "template": "What are the scope and limits of discovery under {{JURISDICTION}} civil procedure rules?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-civil-procedure-specialist",
+          "tags": ["discovery", "scope"]
+        },
+        {
+          "id": "civpro-motion-001",
+          "template": "What is the standard for granting summary judgment in {{JURISDICTION}}?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-civil-procedure-specialist",
+          "tags": ["motion", "summary-judgment"]
+        }
+      ]
+    },
+    {
+      "category": "criminal-procedure",
+      "description": "Criminal procedural rules and defendant rights",
+      "question_templates": [
+        {
+          "id": "crimpro-rights-001",
+          "template": "What rights must be afforded to a defendant at arraignment under {{JURISDICTION}} criminal procedure?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-criminal-procedure-specialist",
+          "tags": ["arraignment", "rights"]
+        },
+        {
+          "id": "crimpro-bail-001",
+          "template": "What factors does {{JURISDICTION}} consider when setting bail?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-criminal-procedure-specialist",
+          "tags": ["bail", "pretrial"]
+        }
+      ]
+    },
+    {
+      "category": "statutes",
+      "description": "Statutory interpretation and application",
+      "question_templates": [
+        {
+          "id": "statute-interp-001",
+          "template": "How should {{JURISDICTION_ABBREV}} Stat. {{STATUTE_NUMBER}} be interpreted in light of {{SCENARIO}}?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-statutes-specialist",
+          "variables": ["STATUTE_NUMBER", "SCENARIO"],
+          "tags": ["statutory-interpretation"]
+        }
+      ]
+    },
+    {
+      "category": "case-law",
+      "description": "Decisional law and precedent",
+      "question_templates": [
+        {
+          "id": "caselaw-holding-001",
+          "template": "What is the holding of {{CASE_NAME}} from the {{COURT_NAME}}?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-case-law-specialist",
+          "variables": ["CASE_NAME", "COURT_NAME"],
+          "tags": ["holding", "precedent"]
+        },
+        {
+          "id": "caselaw-apply-001",
+          "template": "How would the {{HIGHEST_COURT}} likely rule on {{LEGAL_ISSUE}} based on existing {{JURISDICTION}} precedent?",
+          "expected_specialist": "{{JURISDICTION_ABBREV}}-case-law-specialist",
+          "variables": ["LEGAL_ISSUE"],
+          "tags": ["application", "prediction"]
+        }
+      ]
+    }
+  ],
+  "sample_hydrated_cases": [
+    {
+      "id": "fl-evidence-001",
+      "prompt": "Under Florida Evidence Code, is the following statement admissible: 'He told me he was going to kill her'? The statement was made by a witness who overheard the defendant speaking to a friend at a bar.",
+      "expected_specialist": "fl-evidence-specialist",
+      "expected_response_contains": ["hearsay", "803", "statement"],
+      "difficulty": "medium",
+      "tags": ["hearsay", "admissibility", "florida"]
+    }
+  ]
+}
