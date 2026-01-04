@@ -120,14 +120,44 @@ llm-benchmarks/
 | hierarchical_moe | Slowest | Variable | Multi-expert queries |
 | ensemble | Slowest | Best | Critical applications |
 
-## Pending Work: Phase 3 Florida Data
+## Current State (2026-01-03)
 
-User is providing test suites for Florida legal domain:
+### Florida Legal RAG Pipeline
+- **Source**: FLLawDL2025 (Folio Views NXT infobases)
+- **Extracted**: 72MB text (Constitution, Statutes, Laws of Florida)
+- **Chunked**: 7,842 statute sections in structured JSONL
+- **Location**: `extracted-statutes/chunks/florida-statutes.jsonl`
+
+### Active Data Files
+| File | Size | Description |
+|------|------|-------------|
+| `extracted-statutes/florida-statutes-2025-clean.txt` | 53MB | Raw extracted statutes |
+| `extracted-statutes/chunks/florida-statutes.jsonl` | - | 7,842 structured chunks |
+| `florida-authority-pack.md` | - | Source reference (9 deliverables) |
+
+### Key Scripts
+| Script | Purpose |
+|--------|---------|
+| `scripts/extract-nxt-clean.py` | NXT infobase extraction |
+| `scripts/chunk-statutes-structured.py` | Structure-aware chunking |
+| `scripts/models/florida_statute.py` | FloridaStatute dataclass |
+
+### Next Steps
+1. Embed chunks to vector DB (ChromaDB)
+2. Chunk Constitution & Laws of Florida
+3. Create FL legal specialist bundle
+4. Test retrieval with Authority Pack prompts
+
+---
+
+## Phase 3 Florida Data (Completed)
+
+Florida legal domain data has been extracted and chunked:
 - Florida Evidence Code (Chapter 90)
 - Florida Rules of Civil Procedure
 - Florida Rules of Criminal Procedure
-- Florida Statutes
-- Florida/Federal case law
+- Florida Statutes (7,842 sections)
+- Florida/Federal case law references
 
 Template format in `test-suites/_templates/legal-template.json`
 
