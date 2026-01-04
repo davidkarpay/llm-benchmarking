@@ -47,6 +47,126 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$scriptDir\utils\Export-BenchmarkResult.ps1"
 . "$scriptDir\utils\Invoke-BundleRouter.ps1"
 
+# ═══════════════════════════════════════════════════════════════
+# HELPER FUNCTIONS FOR TOKEN METRICS
+# ═══════════════════════════════════════════════════════════════
+
+function Invoke-OllamaWithMetrics {
+    <#
+    .SYNOPSIS
+        Runs ollama with --verbose and parses token metrics from output.
+    .OUTPUTS
+        Hashtable with: response, tokens_generated, tokens_per_second, prompt_tokens, prompt_eval_ms
+    #>
+    param(
+        [string]$Model,
+        [string]$Prompt
+    )
+
+    $result = @{
+        response = ""
+        tokens_generated = 0
+        tokens_per_second = 0
+        prompt_tokens = 0
+        prompt_eval_ms = 0
+        eval_duration_ms = 0
+    }
+
+    try {
+        $output = $Prompt | ollama run $Model --verbose 2>&1 | Out-String
+
+        # First clean all ANSI escape codes from the entire output
+        $cleanOutput = $output -replace '\x1b\[[0-9;]*[a-zA-Z]', ''
+        $cleanOutput = $cleanOutput -replace '\[\?[0-9]+[hlGK]', ''
+        $cleanOutput = $cleanOutput -replace '\[[0-9]+G', ''
+        $cleanOutput = $cleanOutput -replace '\[[0-9]+K', ''
+        $cleanOutput = $cleanOutput -replace '\[K', ''
+
+        # Extract response (everything before "total duration:")
+        if ($cleanOutput -match "(?s)^(.*?)total duration:") {
+            $responseText = $Matches[1].Trim()
+            # Remove spinner characters and clean up
+            $responseText = $responseText -replace '[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]', ''
+            $responseText = $responseText -replace '\s+', ' '
+            $result.response = $responseText.Trim()
+        }
+
+        # Parse eval count (tokens generated) - need non-greedy to get last one
+        $evalMatches = [regex]::Matches($cleanOutput, "eval count:\s+(\d+)")
+        if ($evalMatches.Count -gt 0) {
+            # Take the last match (the one after prompt eval count)
+            $result.tokens_generated = [int]$evalMatches[$evalMatches.Count - 1].Groups[1].Value
+        }
+
+        # Parse eval rate (tokens per second) - last occurrence
+        $rateMatches = [regex]::Matches($cleanOutput, "eval rate:\s+([\d\.]+)")
+        if ($rateMatches.Count -gt 0) {
+            $result.tokens_per_second = [double]$rateMatches[$rateMatches.Count - 1].Groups[1].Value
+        }
+
+        # Parse prompt eval count
+        if ($cleanOutput -match "prompt eval count:\s+(\d+)") {
+            $result.prompt_tokens = [int]$Matches[1]
+        }
+
+        # Parse prompt eval duration in ms (this is effectively time-to-first-token)
+        if ($cleanOutput -match "prompt eval duration:\s+([\d\.]+)ms") {
+            $result.prompt_eval_ms = [double]$Matches[1]
+        } elseif ($cleanOutput -match "prompt eval duration:\s+([\d\.]+)s") {
+            $result.prompt_eval_ms = [double]$Matches[1] * 1000
+        }
+
+        # Parse eval duration
+        if ($cleanOutput -match "(?<!prompt )eval duration:\s+([\d\.]+)") {
+            $result.eval_duration_ms = [double]$Matches[1]
+        }
+    } catch {
+        $result.response = "ERROR: $($_.Exception.Message)"
+    }
+
+    return $result
+}
+
+function Get-ModelVramUsage {
+    <#
+    .SYNOPSIS
+        Gets VRAM usage for a model from ollama ps.
+    .OUTPUTS
+        VRAM in GB as double, or 0 if not found
+    #>
+    param([string]$Model)
+
+    try {
+        $psOutput = ollama ps 2>&1 | Out-String
+        # Match the model name and extract size
+        $modelBase = $Model -replace ':.*', ''  # Remove tag
+        if ($psOutput -match "$modelBase.*?(\d+\.?\d*)\s*GB") {
+            return [double]$Matches[1]
+        }
+    } catch {}
+
+    return 0
+}
+
+function Get-EfficiencyScore {
+    <#
+    .SYNOPSIS
+        Calculates efficiency score: (accuracy * 100) / (params_b * latency_s)
+        Higher is better.
+    #>
+    param(
+        [double]$Accuracy,      # 0-1
+        [double]$ParametersB,   # in billions
+        [double]$LatencyMs      # in milliseconds
+    )
+
+    if ($ParametersB -le 0 -or $LatencyMs -le 0) { return 0 }
+
+    $latencyS = $LatencyMs / 1000
+    $score = ($Accuracy * 100) / ($ParametersB * $latencyS)
+    return [math]::Round($score, 3)
+}
+
 Write-Host @"
 
 ╔═══════════════════════════════════════════════════════════════╗
@@ -221,16 +341,16 @@ foreach ($testCase in $testCases) {
         $fullPrompt = "$($testCase.context)`n`n$($testCase.prompt)"
     }
 
-    try {
-        $response = ollama run $specialistModel $fullPrompt 2>&1 | Out-String
-        $response = $response.Trim()
-    } catch {
-        $response = "ERROR: $($_.Exception.Message)"
-    }
+    # Run inference with metrics collection
+    $inferenceResult = Invoke-OllamaWithMetrics -Model $specialistModel -Prompt $fullPrompt
+    $response = $inferenceResult.response
 
     $inferenceEnd = Get-Date
     $inferenceMs = [math]::Round(($inferenceEnd - $inferenceStart).TotalMilliseconds, 2)
     $totalLatencyMs = $routingResult.latency_ms + $inferenceMs
+
+    # Get VRAM usage
+    $vramGb = Get-ModelVramUsage -Model $specialistModel
 
     # ─────────────────────────────────────────────────────────────
     # STEP 3: Evaluate response quality
@@ -323,6 +443,12 @@ foreach ($testCase in $testCases) {
             active_parameters_b = $specialistParams
             inference_time_ms = $inferenceMs
             total_latency_ms = $totalLatencyMs
+            tokens_generated = $inferenceResult.tokens_generated
+            tokens_per_second = $inferenceResult.tokens_per_second
+            prompt_tokens = $inferenceResult.prompt_tokens
+            time_to_first_token_ms = $inferenceResult.prompt_eval_ms
+            vram_usage_gb = $vramGb
+            efficiency_score = (Get-EfficiencyScore -Accuracy $(if ($responsePass) { 1.0 } else { 0.0 }) -ParametersB $specialistParams -LatencyMs $inferenceMs)
         }
 
         metrics = @{
@@ -434,12 +560,43 @@ Write-Host ""
 Write-Host "Parameters:" -ForegroundColor White
 Write-Host "  Total Bundle: $($totalParams)B" -ForegroundColor DarkGray
 
-# Calculate avg active params manually for PS 5.1 compatibility
+# Calculate averages manually for PS 5.1 compatibility
 $sumActiveParams = 0
+$sumTokensGenerated = 0
+$sumTokensPerSec = 0
+$sumTtft = 0
+$sumEfficiency = 0
+$countWithTokens = 0
+
 foreach ($r in $results) {
     $sumActiveParams += $r.bundle_config.active_parameters_b
+    if ($r.cost_efficiency.tokens_generated -gt 0) {
+        $sumTokensGenerated += $r.cost_efficiency.tokens_generated
+        $sumTokensPerSec += $r.cost_efficiency.tokens_per_second
+        $sumTtft += $r.cost_efficiency.time_to_first_token_ms
+        $sumEfficiency += $r.cost_efficiency.efficiency_score
+        $countWithTokens++
+    }
 }
+
 $avgActiveParams = if ($results.Count -gt 0) { [math]::Round($sumActiveParams / $results.Count, 1) } else { 0 }
+$avgTokensGenerated = if ($countWithTokens -gt 0) { [math]::Round($sumTokensGenerated / $countWithTokens, 0) } else { 0 }
+$avgTokensPerSec = if ($countWithTokens -gt 0) { [math]::Round($sumTokensPerSec / $countWithTokens, 1) } else { 0 }
+$avgTtft = if ($countWithTokens -gt 0) { [math]::Round($sumTtft / $countWithTokens, 1) } else { 0 }
+$avgEfficiency = if ($countWithTokens -gt 0) { [math]::Round($sumEfficiency / $countWithTokens, 3) } else { 0 }
+
 Write-Host "  Avg Active:   $($avgActiveParams)B" -ForegroundColor DarkGray
+
+Write-Host ""
+Write-Host "Token Metrics:" -ForegroundColor White
+Write-Host "  Avg Tokens Generated: $avgTokensGenerated" -ForegroundColor DarkGray
+Write-Host "  Avg Tokens/sec:       $avgTokensPerSec" -ForegroundColor DarkGray
+Write-Host "  Avg TTFT:             $('{0:N1}' -f $avgTtft) ms" -ForegroundColor DarkGray
+
+Write-Host ""
+Write-Host "Efficiency Score:" -ForegroundColor White
+$effColor = if ($avgEfficiency -ge 1) { "Green" } elseif ($avgEfficiency -ge 0.5) { "Yellow" } else { "Red" }
+Write-Host "  Bundle Avg:   $avgEfficiency" -ForegroundColor $effColor
+Write-Host "  Formula:      (accuracy% * 100) / (params_B * latency_s)" -ForegroundColor DarkGray
 
 Write-Host ""

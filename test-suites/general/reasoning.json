@@ -14,7 +14,7 @@
     },
     {
       "id": "reasoning-002",
-      "prompt": "A train leaves Station A at 9:00 AM traveling at 60 mph. Another train leaves Station B (120 miles away) at 10:00 AM traveling toward Station A at 40 mph. At what time will they meet?",
+      "prompt": "A train leaves Station A at 9:00 AM traveling at 60 mph. Another train leaves Station B (280 miles away) at 10:00 AM traveling toward Station A at 80 mph. At what time will they meet?",
       "expected_specialist": "reasoning-specialist",
       "expected_response_contains": ["11"],
       "difficulty": "medium",
