@@ -75,26 +75,35 @@ function Invoke-OllamaWithMetrics {
     try {
         $output = $Prompt | ollama run $Model --verbose 2>&1 | Out-String
 
-        # First clean all ANSI escape codes from the entire output
-        $cleanOutput = $output -replace '\x1b\[[0-9;]*[a-zA-Z]', ''
-        $cleanOutput = $cleanOutput -replace '\[\?[0-9]+[hlGK]', ''
-        $cleanOutput = $cleanOutput -replace '\[[0-9]+G', ''
-        $cleanOutput = $cleanOutput -replace '\[[0-9]+K', ''
-        $cleanOutput = $cleanOutput -replace '\[K', ''
+        # Extract response: everything before "ollama :" or "total duration:"
+        # The response is clean text at the start, before ollama's status output
+        $responseText = $output
 
-        # Extract response (everything before "total duration:")
-        if ($cleanOutput -match "(?s)^(.*?)total duration:") {
-            $responseText = $Matches[1].Trim()
-            # Remove spinner characters and clean up
-            $responseText = $responseText -replace '[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]', ''
-            $responseText = $responseText -replace '\s+', ' '
-            $result.response = $responseText.Trim()
+        # Cut at "ollama :" which marks start of status/escape codes
+        if ($responseText -match "(?s)^(.*?)ollama\s*:") {
+            $responseText = $Matches[1]
+        }
+        # Or cut at "total duration:" if "ollama :" not found
+        elseif ($responseText -match "(?s)^(.*?)total duration:") {
+            $responseText = $Matches[1]
         }
 
-        # Parse eval count (tokens generated) - need non-greedy to get last one
+        # Clean up the response
+        $responseText = $responseText -replace '\[[\?\d]+[hlGK]', ''  # Escape codes like [?25h
+        $responseText = $responseText -replace '\[\d*[GK]', ''        # Cursor codes like [1G, [K
+        $responseText = $responseText -replace '\[2K', ''             # Clear line
+        $responseText = $responseText -replace '[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏Γáá╕ÖáÖ]', ''  # Spinner chars
+        $responseText = $responseText.Trim()
+
+        $result.response = $responseText
+
+        # For metrics, clean the full output
+        $cleanOutput = $output -replace '\[[\?\d]+[hlGK]', ''
+        $cleanOutput = $cleanOutput -replace '\[\d*[GK]', ''
+
+        # Parse eval count (tokens generated) - last occurrence (after prompt eval count)
         $evalMatches = [regex]::Matches($cleanOutput, "eval count:\s+(\d+)")
         if ($evalMatches.Count -gt 0) {
-            # Take the last match (the one after prompt eval count)
             $result.tokens_generated = [int]$evalMatches[$evalMatches.Count - 1].Groups[1].Value
         }
 
@@ -109,7 +118,7 @@ function Invoke-OllamaWithMetrics {
             $result.prompt_tokens = [int]$Matches[1]
         }
 
-        # Parse prompt eval duration in ms (this is effectively time-to-first-token)
+        # Parse prompt eval duration (time-to-first-token)
         if ($cleanOutput -match "prompt eval duration:\s+([\d\.]+)ms") {
             $result.prompt_eval_ms = [double]$Matches[1]
         } elseif ($cleanOutput -match "prompt eval duration:\s+([\d\.]+)s") {
