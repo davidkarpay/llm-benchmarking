@@ -11,7 +11,7 @@
       "size_class": "small",
       "parameters_b": 7,
       "specialization": "Code generation, debugging, and programming tasks",
-      "keywords": ["code", "function", "class", "bug", "error", "implement", "algorithm", "python", "javascript", "programming", "debug", "syntax"]
+      "keywords": ["code", "function", "class", "bug", "error", "implement", "algorithm", "python", "javascript", "programming", "debug", "syntax", "SQL", "query", "complexity", "stack", "queue", "array", "list", "data structure", "binary", "O(", "time complexity", "space complexity", "variable", "loop", "recursion", "API", "database", "compile", "runtime"]
     },
     {
       "id": "reasoning-specialist",
@@ -21,7 +21,7 @@
       "size_class": "medium",
       "parameters_b": 14,
       "specialization": "Multi-step reasoning, logic puzzles, and mathematical problems",
-      "keywords": ["calculate", "solve", "prove", "logic", "reasoning", "math", "equation", "steps", "analyze", "deduce", "therefore", "if-then"]
+      "keywords": ["calculate", "solve", "prove", "logic", "reasoning", "math", "equation", "steps", "analyze", "deduce", "therefore", "if-then", "probability", "how many", "how long", "how much", "train", "machine", "widget", "mph", "minutes", "hours", "people", "room", "conclude", "syllogism", "puzzle", "riddle", "word problem", "sum of", "total", "percentage", "ratio"]
     },
     {
       "id": "knowledge-specialist",
@@ -41,7 +41,7 @@
       "size_class": "small",
       "parameters_b": 7,
       "specialization": "Creative writing, storytelling, and content generation",
-      "keywords": ["write", "story", "poem", "creative", "imagine", "describe", "narrative", "character", "plot", "fiction", "essay"]
+      "keywords": ["story", "poem", "creative", "imagine", "narrative", "character", "plot", "fiction", "essay", "haiku", "limerick", "poetry", "prose", "metaphor", "vivid", "artistic", "poetic", "compose", "literary", "sunset", "mystery novel"]
     },
     {
       "id": "general-fallback",

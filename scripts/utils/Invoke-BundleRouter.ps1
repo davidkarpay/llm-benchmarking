@@ -116,7 +116,8 @@ function Get-DomainSignatureScore {
     if (-not $DomainSignatures) { return 0 }
 
     $queryLower = $Query.ToLower()
-    $maxScore = 0
+    $totalScore = 0
+    $matchCount = 0
 
     foreach ($domain in $TargetDomains) {
         if ($DomainSignatures.ContainsKey($domain)) {
@@ -124,14 +125,20 @@ function Get-DomainSignatureScore {
             foreach ($sig in $signatures) {
                 $sigLower = $sig.ToLower()
                 if ($queryLower -match [regex]::Escape($sigLower)) {
-                    $score = $sigLower.Length / 50  # Normalize by phrase length
-                    if ($score -gt $maxScore) { $maxScore = $score }
+                    # Longer phrases are more specific = higher value
+                    $score = $sigLower.Length / 20
+                    $totalScore += $score
+                    $matchCount++
                 }
             }
         }
     }
 
-    return [math]::Min(1, $maxScore)
+    # Multiple matches = strong domain signal, apply bonus
+    if ($matchCount -ge 2) { $totalScore *= 1.5 }
+    if ($matchCount -ge 3) { $totalScore *= 1.5 }
+
+    return [math]::Min(1, $totalScore)
 }
 
 function Invoke-SemanticRoute {
