@@ -120,7 +120,64 @@ llm-benchmarks/
 | hierarchical_moe | Slowest | Variable | Multi-expert queries |
 | ensemble | Slowest | Best | Critical applications |
 
-## Current State (2026-01-03)
+## Current State (2026-01-05)
+
+### Benchmark Results (573-Test Suite)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Routing Accuracy** | 82.7% | Semantic router with improved signatures |
+| **Response Accuracy** | 95.8% | Specialists perform well even with imperfect routing |
+| **Test Cases** | 573 | Statistically significant (±3.3% margin at 95% CI) |
+| **Avg Active Params** | 9.2B | vs 39.8B total bundle |
+
+### Routing Failure Analysis
+- **Knowledge ↔ Reasoning overlap**: ~56 failures (CS/physics questions are ambiguous)
+- **Knowledge → Code**: 22 failures (MMLU CS looks like code questions)
+- Remaining ~17% failures are inherently ambiguous cases
+
+### Expanded Test Suite Infrastructure
+
+```powershell
+# Import public datasets from HuggingFace (3,378 tests)
+python scripts/import-datasets.py
+
+# Generate mixed benchmark suite (573 tests across all domains)
+python scripts/create-mixed-suite.py
+
+# Run parallel benchmark (4x faster than sequential)
+.\scripts\benchmark-bundle-parallel.ps1 `
+    -BundleConfig ".\configs\bundles\general-bundle.json" `
+    -RouterConfig ".\configs\routers\semantic-router.json" `
+    -TestSuite ".\test-suites\mixed\mixed-benchmark.json" `
+    -Parallelism 4
+
+# Analyze routing failures
+.\scripts\analyze-routing-failures.ps1
+
+# Aggregate results across multiple runs
+.\scripts\aggregate-results.ps1 -ResultDir "results/raw" -ShowDetails
+```
+
+### Test Suite Breakdown
+| Domain | Tests | Source | Expected Specialist |
+|--------|-------|--------|---------------------|
+| Reasoning | 150 | GSM8K | reasoning-specialist |
+| Code | 150 | HumanEval | code-specialist |
+| Knowledge | 150 | MMLU-Pro | knowledge-specialist |
+| Science | 100 | ARC | knowledge-specialist |
+| General | 23 | Hand-crafted | Mixed |
+
+### New Utility Scripts
+| Script | Purpose |
+|--------|---------|
+| `scripts/benchmark-bundle-parallel.ps1` | Parallel test execution using runspaces |
+| `scripts/import-datasets.py` | Import GSM8K, HumanEval, ARC, MMLU from HuggingFace |
+| `scripts/create-mixed-suite.py` | Generate mixed benchmark suite |
+| `scripts/aggregate-results.ps1` | Multi-run statistical aggregation |
+| `scripts/analyze-routing-failures.ps1` | Routing failure breakdown |
+| `scripts/utils/Get-BenchmarkStats.ps1` | Statistical functions (mean, stddev, CI) |
+| `scripts/utils/Get-SemanticSimilarity.ps1` | Embedding-based similarity scoring |
 
 ### Florida Legal RAG Pipeline
 - **Source**: FLLawDL2025 (Folio Views NXT infobases)
@@ -128,23 +185,16 @@ llm-benchmarks/
 - **Chunked**: 7,842 statute sections in structured JSONL
 - **Location**: `extracted-statutes/chunks/florida-statutes.jsonl`
 
-### Active Data Files
-| File | Size | Description |
-|------|------|-------------|
-| `extracted-statutes/florida-statutes-2025-clean.txt` | 53MB | Raw extracted statutes |
-| `extracted-statutes/chunks/florida-statutes.jsonl` | - | 7,842 structured chunks |
-| `florida-authority-pack.md` | - | Source reference (9 deliverables) |
-
-### Key Scripts
-| Script | Purpose |
-|--------|---------|
-| `scripts/extract-nxt-clean.py` | NXT infobase extraction |
-| `scripts/chunk-statutes-structured.py` | Structure-aware chunking |
-| `scripts/models/florida_statute.py` | FloridaStatute dataclass |
+### Key Learnings
+1. **Semantic routing works**: 82.7% accuracy with keyword/signature matching
+2. **Response accuracy > routing accuracy**: Specialists handle queries well even when misrouted
+3. **Domain overlap is the main challenge**: CS knowledge vs code, physics vs math reasoning
+4. **500+ tests needed**: Provides statistical confidence for benchmark results
+5. **Parallel execution essential**: 4 workers = ~4x throughput for large test suites
 
 ### Next Steps
-1. Embed chunks to vector DB (ChromaDB)
-2. Chunk Constitution & Laws of Florida
+1. Implement ML-based classifier router for higher accuracy
+2. Embed Florida statute chunks to ChromaDB
 3. Create FL legal specialist bundle
 4. Test retrieval with Authority Pack prompts
 
