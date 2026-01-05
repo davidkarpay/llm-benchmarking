@@ -2,7 +2,7 @@
   "strategy": "semantic",
   "semantic_config": {
     "embedding_model": "nomic-embed-text",
-    "similarity_threshold": 0.15,
+    "similarity_threshold": 0.12,
     "use_keywords": true,
     "domain_signatures": {
       "code": [
@@ -14,6 +14,13 @@
         "debug this",
         "fix the error",
         "fix this code",
+        "complete this python function",
+        "complete this function",
+        "def ",
+        "function(",
+        "class ",
+        ">>> ",
+        "from typing import",
         "time complexity of",
         "space complexity of",
         "complexity of binary",
@@ -21,7 +28,10 @@
         "data structure",
         "stack and queue",
         "algorithm",
-        "programming"
+        "programming",
+        "code",
+        "python",
+        "javascript"
       ],
       "reasoning": [
         "solve this",
@@ -30,6 +40,7 @@
         "approximate probability",
         "in a room of",
         "how many",
+        "how much",
         "how long does it take",
         "if all",
         "all roses are",
@@ -42,7 +53,17 @@
         "machines make",
         "widgets",
         "word problem",
-        "logic puzzle"
+        "logic puzzle",
+        "eggs per day",
+        "per day",
+        "every day",
+        "sells the remainder",
+        "how many bolts",
+        "in total",
+        "dollars does",
+        "$ per",
+        "each cost",
+        "total cost"
       ],
       "knowledge": [
         "who invented",
@@ -53,7 +74,21 @@
         "what is the largest",
         "what is the speed of",
         "historical fact",
-        "chemical symbol"
+        "chemical symbol",
+        "which of the following",
+        "answer with the letter",
+        "select the correct",
+        "choose the best",
+        "the correct answer is",
+        "multiple choice",
+        "photosynthesis",
+        "mitotic",
+        "calvin cycle",
+        "cell division",
+        "biology",
+        "physics",
+        "history",
+        "according to"
       ],
       "creative": [
         "write a story",
