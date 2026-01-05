@@ -589,6 +589,138 @@ Good: "Prior to 2023, this area was within the 2nd DCA and 5th DCA jurisdiction.
 ```
 **Implementation**: Add preemption check for relevant practice areas.
 
+## H-FL-013: Conflict Test for Ordinances
+**Problem**: Incorrectly analyzing whether local ordinances conflict with state law
+**Rule**: Apply the *Phantom of Brevard* test: "The test for conflict between a local ordinance and a state statute is whether in order to comply with one provision, a violation of the other is required."
+**Example**:
+```
+Bad: "The ordinance conflicts with state law because it regulates the same subject."
+Good: "The ordinance does not conflict with state law because a business can comply with both the local permit requirement and the state licensing statute without violating either."
+```
+**Source**: *Phantom of Brevard, Inc. v. Brevard County*, 3 So.3d 309 (Fla. 2008)
+**Implementation**: Before finding ordinance/statute conflict, apply the compliance test.
+
+## H-FL-014: Admin Orders vs. Local Court Rules
+**Problem**: Confusing administrative orders with local court rules and their approval requirements
+**Rule**: Administrative orders (issued by Chief Judge under Rule 2.215) do NOT require Florida Supreme Court approval. Local court rules DO require Supreme Court approval, majority approval of circuit judges, and notice to the local bar.
+**Example**:
+```
+Bad: "The chief judge's administrative order must be approved by the Supreme Court."
+Good: "Administrative orders govern court administration and do not require Supreme Court approval. Unlike local court rules, which require Supreme Court approval under Rule 2.215(e), administrative orders are issued solely by the chief judge."
+```
+**Source**: *Physicians Healthcare Plans, Inc. v. Pfeifler*, 846 So.2d 1129 (Fla. 2003)
+**Implementation**: Distinguish admin orders (no approval needed) from local rules (approval required).
+
+## H-FL-015: State Supremacy Over Municipalities
+**Problem**: Overstating municipal home rule powers when state law applies
+**Rule**: Municipal ordinances must yield to state statutes. Article VIII, Section 2(b)'s phrase "except as otherwise provided by law" establishes the constitutional superiority of the Legislature's power over municipal power.
+**Example**:
+```
+Bad: "Under home rule, the city can regulate this area as it sees fit."
+Good: "While municipalities have broad home rule powers, municipal ordinances must yield to state statutes under Article VIII, Section 2(b). The state law controls here."
+```
+**Source**: *Masone v. City of Aventura*, 147 So.3d 492 (Fla. 2014)
+**Implementation**: Check for applicable state law before affirming municipal regulatory authority.
+
+## H-FL-016: Dual Rulemaking Requirement
+**Problem**: Assuming agency rulemaking authority from general enabling statutes alone
+**Rule**: An agency needs BOTH (1) a grant of rulemaking authority AND (2) a specific law to be implemented. Neither alone is sufficient. "A grant of rulemaking authority is necessary but not sufficient to allow an agency to adopt a rule."
+**Example**:
+```
+Bad: "The agency has rulemaking authority under its enabling statute, so the rule is valid."
+Good: "Although the agency has general rulemaking authority, § 120.536(1) requires both rulemaking authority AND a specific law to implement. The agency must identify both."
+```
+**Source**: Fla. Stat. § 120.536(1)
+**Implementation**: Require identification of both rulemaking authority AND specific law implemented.
+
+## H-FL-017: De Novo Rulemaking Review
+**Problem**: Deferring to agency interpretations when reviewing rulemaking authority
+**Rule**: Whether an agency exceeded its rulemaking authority or enlarged the specific provisions of law implemented is reviewed de novo. Article V, Section 21 of the Florida Constitution abolished deference to agency statutory interpretations.
+**Example**:
+```
+Bad: "The court will defer to the agency's reasonable interpretation of its rulemaking authority."
+Good: "Under Article V, Section 21, Florida courts give no deference to agency interpretations. Whether the agency exceeded its rulemaking authority is reviewed de novo."
+```
+**Source**: *Florida Prepaid College Board v. Intuition College Savings Solutions, LLC*, 330 So.3d 93 (Fla. 1st DCA 2021); Fla. Const. Art. V, § 21
+**Implementation**: Apply de novo standard to all agency rulemaking authority challenges.
+
+## H-FL-018: Judicial Assignment Exclusivity
+**Problem**: Seeking DCA review of judicial assignments from administrative orders
+**Rule**: Only the Florida Supreme Court can review judicial assignments arising from administrative orders. District Courts of Appeal lack jurisdiction to review such assignments. Litigants must challenge in trial court, then petition the Supreme Court.
+**Example**:
+```
+Bad: "We will appeal the chief judge's assignment order to the DCA."
+Good: "The DCA lacks jurisdiction to review judicial assignments from administrative orders. Under Wild v. Dozier, the challenge must be raised in trial court and then appealed directly to the Florida Supreme Court."
+```
+**Source**: *Wild v. Dozier*, 672 So.2d 16 (Fla. 1996); *Polanco v. Citizens Property Insurance Corp.*, 271 So.3d 1117 (Fla. 3d DCA 2019)
+**Implementation**: Direct judicial assignment challenges to Supreme Court, not DCA.
+
+## H-FL-019: No Intra-District Conflict Jurisdiction
+**Problem**: Seeking Supreme Court review based on conflict within the same DCA
+**Rule**: The Supreme Court's conflict jurisdiction under Article V, Section 3(b)(3) does NOT extend to intra-district conflicts. The constitution requires conflict with "another district court of appeal," not the same DCA.
+**Example**:
+```
+Bad: "The Supreme Court can review because this 1st DCA decision conflicts with another 1st DCA decision."
+Good: "Article V, Section 3(b)(3) requires conflict with another DCA. Conflicts within the same DCA (intra-district) do not invoke Supreme Court jurisdiction. Use en banc review under Rule 9.331 instead."
+```
+**Source**: *Walker v. State*, 331 So.3d 1199 (Fla. 2022); *Terry v. State*, 808 So.2d 1249 (Fla. 2002)
+**Implementation**: Distinguish inter-district (Supreme Court) from intra-district (en banc) conflicts.
+
+## H-FL-020: Pardo Statewide Binding
+**Problem**: Treating DCA opinions as binding only within their geographic district
+**Rule**: In the absence of inter-district conflict, DCA decisions bind ALL Florida trial courts statewide, not just those within the DCA's geographic jurisdiction. This is the Pardo principle.
+**Example**:
+```
+Bad: "This 3rd DCA case is only binding in Miami-Dade. Trial courts in Orlando can disregard it."
+Good: "Under the Pardo principle, the 3rd DCA's decision binds all Florida trial courts statewide because no other DCA has addressed this issue. Trial courts in the 5th DCA's territory must follow it."
+```
+**Source**: *Pardo v. State*, 596 So.2d 665 (Fla. 1992); *State v. Barnum*, 921 So.2d 513 (Fla. 2005)
+**Implementation**: When only one DCA has ruled, apply statewide binding effect.
+
+## H-FL-021: Agency Deference Prohibited
+**Problem**: Applying Chevron-style deference to Florida agency interpretations
+**Rule**: Florida courts give NO deference to agency interpretations of statutes or rules. Article V, Section 21 (effective January 8, 2019) requires de novo interpretation. Florida eliminated agency deference six years before federal *Loper Bright*.
+**Example**:
+```
+Bad: "The court should defer to the agency's reasonable interpretation of the statute."
+Good: "Under Article V, Section 21 of the Florida Constitution, courts 'may not defer to an administrative agency's interpretation of such statute or rule, and must instead interpret such statute or rule de novo.'"
+```
+**Source**: Fla. Const. Art. V, § 21 (effective Jan. 8, 2019)
+**Implementation**: Apply de novo review to all agency statutory/rule interpretations.
+
+## H-FL-022: En Banc for Intra-District Conflict
+**Problem**: Not identifying the proper mechanism to resolve conflicts within a single DCA
+**Rule**: Intra-district conflicts (conflicts between panels within the same DCA) are resolved through en banc proceedings under Florida Rule of Appellate Procedure 9.331, not Supreme Court review.
+**Example**:
+```
+Bad: "The Supreme Court should resolve this conflict between two 4th DCA panels."
+Good: "This is an intra-district conflict within the 4th DCA. Under Rule 9.331, the proper mechanism is en banc consideration, not Supreme Court review."
+```
+**Source**: Fla. R. App. P. 9.331
+**Implementation**: Direct intra-district conflicts to en banc; inter-district to Supreme Court.
+
+## H-FL-023: Four Corners Express Conflict
+**Problem**: Finding conflict jurisdiction from record, concurrences, or dissents
+**Rule**: For Supreme Court conflict jurisdiction, the conflict must appear "expressly and directly" within the four corners of the majority opinion. Conflict cannot be found from the record, concurring opinions, or dissenting opinions.
+**Example**:
+```
+Bad: "The dissent identified a conflict with the 2nd DCA, so the Supreme Court has jurisdiction."
+Good: "Under Jenkins v. State, conflict must appear within the four corners of the majority opinion. A dissent's identification of conflict does not establish Supreme Court jurisdiction."
+```
+**Source**: *Jenkins v. State*, 385 So.2d 1356 (Fla. 1980)
+**Implementation**: Check majority opinion only for express conflict language.
+
+## H-FL-024: Express Preemption Required
+**Problem**: Finding state preemption of local law without explicit legislative statement
+**Rule**: Express preemption of local ordinances requires a specific legislative statement. Preemption cannot be implied or inferred; it must be accomplished by clear language.
+**Example**:
+```
+Bad: "The state's regulation of this area implies preemption of local ordinances."
+Good: "Express preemption requires a specific legislative statement—it cannot be implied or inferred. Absent clear preemptive language, local concurrent regulation is permitted."
+```
+**Source**: *D'Agastino v. City of Miami*, 220 So.3d 410 (Fla. 2017)
+**Implementation**: Require explicit statutory preemption language before finding preemption.
+
 ---
 
 # DELIVERABLE 8: Cross-Model Test Prompt Set (Florida-Law)
