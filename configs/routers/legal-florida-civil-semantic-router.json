@@ -1,7 +1,8 @@
 {
   "strategy": "semantic",
-  "description": "Intent-based semantic router for Florida legal bundles",
+  "description": "Intent-based semantic router for Florida CIVIL law bundle",
   "jurisdiction": "florida",
+  "practice_area": "civil",
   "semantic_config": {
     "embedding_model": "nomic-embed-text",
     "similarity_threshold": 0.20,
@@ -85,9 +86,7 @@
         "redline",
         "format",
         "template",
-        "fill out",
-        "draft a parenting plan",
-        "draft a marital settlement agreement"
+        "fill out"
       ],
       "intake": [
         "new client",
@@ -107,7 +106,6 @@
         "database query",
         "calendar",
         "docket",
-        "child support worksheet",
         "damages calculation"
       ],
       "local_rules": [
@@ -127,29 +125,19 @@
       ]
     },
     "specialist_mapping": {
-      "authority": ["fl-crim-authority", "fl-civil-authority", "fl-family-authority"],
-      "procedure": ["fl-crim-procedure", "fl-civil-procedure", "fl-family-procedure"],
-      "analysis": ["fl-crim-analysis", "fl-civil-analysis", "fl-family-analysis"],
-      "drafting": ["fl-crim-drafting", "fl-civil-drafting", "fl-family-drafting"],
-      "intake": ["fl-crim-intake", "fl-civil-intake", "fl-family-intake"],
-      "ops": ["fl-crim-ops", "fl-civil-ops", "fl-family-ops"],
-      "local_rules": ["fl-crim-authority", "fl-civil-authority", "fl-family-authority"]
+      "authority": ["fl-civil-authority"],
+      "procedure": ["fl-civil-procedure"],
+      "analysis": ["fl-civil-analysis"],
+      "drafting": ["fl-civil-drafting"],
+      "intake": ["fl-civil-intake"],
+      "ops": ["fl-civil-ops"],
+      "local_rules": ["fl-civil-authority"]
     },
     "practice_area_detection": {
-      "criminal": [
-        "arrested", "charged with", "felony", "misdemeanor", "speedy trial",
-        "Miranda", "suppression", "bond", "bail", "sentencing", "plea",
-        "prosecution", "defendant", "criminal defense"
-      ],
       "civil": [
         "lawsuit", "sue", "plaintiff", "negligence", "breach of contract",
         "damages", "personal injury", "slip and fall", "discovery",
         "summary judgment", "complaint", "answer"
-      ],
-      "family": [
-        "divorce", "dissolution", "custody", "timesharing", "child support",
-        "alimony", "equitable distribution", "parenting plan", "modification",
-        "paternity", "domestic violence injunction"
       ]
     }
   },

@@ -420,6 +420,7 @@ function Invoke-HierarchicalMoERoute {
     $moeConfig = $RouterConfig.hierarchical_config
     $model = if ($moeConfig.gating_model) { $moeConfig.gating_model } else { "phi3:3.8b" }
     $topK = if ($moeConfig.top_k) { $moeConfig.top_k } else { 2 }
+    $lowScoreThreshold = if ($moeConfig.low_score_threshold) { $moeConfig.low_score_threshold } else { 3 }
 
     # Build specialist list for gating
     $specialistList = ($BundleConfig.specialists | ForEach-Object {
@@ -467,8 +468,8 @@ Respond with ONLY a relevance score (0-10) for each specialist, one per line in 
     $selectedId = $bestMatch.Key
     $confidence = [math]::Round($bestMatch.Value / 10, 2)
 
-    # Fallback if no good match
-    if ($bestMatch.Value -lt 3) {
+    # Fallback if no good match (use configurable threshold, default 3)
+    if ($bestMatch.Value -lt $lowScoreThreshold) {
         $fallback = $BundleConfig.specialists | Where-Object { $_.fallback -eq $true } | Select-Object -First 1
         if ($fallback) {
             $selectedId = $fallback.id

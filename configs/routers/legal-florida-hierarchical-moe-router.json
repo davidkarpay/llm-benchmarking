@@ -1,0 +1,15 @@
+{
+  "strategy": "hierarchical_moe",
+  "description": "Legal-safe hierarchical MoE router for Florida legal bundles",
+  "jurisdiction": "florida",
+  "hierarchical_config": {
+    "gating_model": "qwen2.5:14b",
+    "top_k": 1,
+    "temperature": 0.1,
+    "chunk_size": 0,
+    "gating_prompt": "Rate the relevance of each specialist (0-10) for handling this Florida legal query. If no specialist is clearly appropriate for the query, or if the query is ambiguous or missing required information (like locality for ordinances), give ALL specialists scores of 3 or lower.\n\nQuery: {query}\n\nSpecialists:\n{specialists}\n\nRespond with JSON: {{\"specialist_id\": score, ...}}",
+    "low_score_threshold": 5
+  },
+  "fallback_behavior": "use_fallback_specialist",
+  "routing_timeout_ms": 10000
+}

@@ -1,0 +1,14 @@
+{
+  "strategy": "orchestrator",
+  "description": "Legal-safe orchestrator router for Florida legal bundles",
+  "jurisdiction": "florida",
+  "orchestrator_config": {
+    "orchestrator_model": "qwen2.5:14b",
+    "system_prompt": "You are a Florida legal query router. Your job is to select the specialist best suited to handle this query. Important routing rules:\n\n1. If the query asks about LOCAL RULES, ORDINANCES, or ADMINISTRATIVE ORDERS without specifying the circuit/county, route to the INTAKE specialist (ending with '-intake') so they can ask for the locality.\n2. If the query is AMBIGUOUS about whether it needs authority lookup, procedural guidance, or case analysis, route to INTAKE.\n3. Only route to DRAFTING specialist if the user explicitly asks to DRAFT, WRITE, PREPARE, or GENERATE a document.\n4. Route STATUTE OF LIMITATIONS questions to the AUTHORITY specialist, not procedure.\n\nRespond with ONLY the specialist ID.",
+    "routing_prompt_template": "Available specialists:\n{specialists}\n\nUser query: {query}\n\nWhich specialist should handle this query? Respond with ONLY the specialist ID (e.g., 'fl-civil-authority'):",
+    "max_tokens": 50,
+    "allow_multi_specialist": false
+  },
+  "fallback_behavior": "use_fallback_specialist",
+  "routing_timeout_ms": 8000
+}
