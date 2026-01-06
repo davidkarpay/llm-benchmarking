@@ -120,19 +120,51 @@ $response = Invoke-RestMethod -Uri "http://localhost:11434/api/generate" -Method
 
 ## Routing Strategies
 
-| Strategy | Speed | Best For |
-|----------|-------|----------|
-| semantic | Fast | Clear domain keywords (82.7% accuracy achieved) |
-| classifier | Medium | Trained classification (not yet implemented) |
-| orchestrator | Slow | Ambiguous/complex queries |
+| Strategy | Speed | General Domain | Florida Legal | Best For |
+|----------|-------|----------------|---------------|----------|
+| semantic | Fast (<50ms) | 82.7% | 35.2% | Clear domain keywords |
+| classifier | Medium (~200ms) | ~88% (est) | - | Trained classification (planned) |
+| orchestrator | Slow (~400ms) | - | **64.8%** | Ambiguous/complex queries |
+| hierarchical_moe | Slowest (~1.5s) | - | 61.1% | Multi-expert queries |
 
-## Florida Legal RAG Pipeline
+**Key Finding**: LLM-based orchestrator routing significantly outperforms semantic routing for specialized domains like legal (64.8% vs 35.2%).
+
+## Florida Legal Domain
+
+### RAG Pipeline
 
 Extracted from FLLawDL2025 (Folio Views NXT format):
 - **Extraction**: `scripts/extract-nxt-clean.py` (handles NXT binary format)
 - **Chunking**: `scripts/chunk-statutes-structured.py` (statute section detection)
 - **Output**: `extracted-statutes/chunks/florida-statutes.jsonl` (7,842 sections)
 - **Embedding**: `scripts/embed-statutes.py` (SQLite + ChromaDB)
+
+### Legal Bundle Architecture
+
+6 specialists by function (not domain): Authority, Procedure, Analysis, Drafting, Intake, Ops
+
+```powershell
+# Compare routing strategies for Florida legal
+.\scripts\benchmark-routing.ps1 `
+    -BundleConfig ".\configs\bundles\legal-florida-criminal-bundle.json" `
+    -RouterConfigs @(
+        ".\configs\routers\legal-florida-criminal-semantic-router.json",
+        ".\configs\routers\legal-florida-orchestrator-router.json",
+        ".\configs\routers\legal-florida-hierarchical-moe-router.json"
+    ) `
+    -TestSuite ".\test-suites\legal\florida\florida-criminal.json" `
+    -IncludeOracle
+```
+
+### Florida Legal Routing Results (54 tests)
+
+| Router | Criminal | Civil | Family | Overall |
+|--------|----------|-------|--------|---------|
+| Semantic | 38.9% | 44.4% | 22.2% | **35.2%** |
+| Orchestrator | 77.8% | 44.4% | 72.2% | **64.8%** |
+| Hierarchical MoE | 77.8% | 55.6% | 50.0% | **61.1%** |
+
+**Why legal routing is harder**: Authority vs procedure distinction requires domain knowledge (e.g., "statute of limitations" is a statute lookup, not a deadline question).
 
 ## Dependencies
 
@@ -149,7 +181,9 @@ Extracted from FLLawDL2025 (Folio Views NXT format):
 - **ANSI escape codes**: May appear in JSON snippets from Ollama responses; strip with regex if needed
 - **Parallel execution**: Runspaces share Ollama endpoint; limit parallelism to avoid timeouts
 
-## Current Benchmark Results (573-Test Suite)
+## Current Benchmark Results
+
+### General Domain (573-Test Suite)
 
 | Metric | Value |
 |--------|-------|
@@ -158,3 +192,13 @@ Extracted from FLLawDL2025 (Folio Views NXT format):
 | Avg Active Params | 9.2B (vs 39.8B total) |
 
 Main routing failures: Knowledge ↔ Reasoning overlap (CS/physics questions), Knowledge → Code (MMLU CS looks like code)
+
+### Florida Legal Domain (54-Test Suite)
+
+| Metric | Semantic | Orchestrator | MoE |
+|--------|----------|--------------|-----|
+| Overall Accuracy | 35.2% | **64.8%** | 61.1% |
+| Best Practice Area | Civil (44.4%) | Criminal (77.8%) | Criminal (77.8%) |
+| Worst Practice Area | Family (22.2%) | Civil (44.4%) | Family (50.0%) |
+
+Key insight: Civil law routing is hardest (authority/procedure overlap); Criminal has clearest intent separation.
