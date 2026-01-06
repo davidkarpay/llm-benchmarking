@@ -662,49 +662,78 @@
 <li><strong>No learning</strong>: Semantic router doesn't improve from feedback</li>
 <li><strong>Test suite bias</strong>: GSM8K/HumanEval/MMLU may not represent real-world query distribution</li>
 </ol>
-<h3 id="routing-strategy-roadmap">Routing Strategy Roadmap</h3>
+<h3 id="routing-strategy-comparison">Routing Strategy Comparison</h3>
 <table>
 <thead>
 <tr>
 <th>Strategy</th>
 <th>Status</th>
-<th>Expected Accuracy</th>
-<th>Latency Overhead</th>
+<th>General Domain</th>
+<th>Florida Legal</th>
+<th>Avg Latency</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Semantic</td>
 <td>Implemented</td>
-<td>82.7% (actual)</td>
+<td>82.7%</td>
+<td>35.2%</td>
 <td>&lt;50ms</td>
 </tr>
 <tr>
 <td>Classifier</td>
 <td>Planned</td>
-<td>~88%</td>
+<td>~88% (est)</td>
+<td>-</td>
 <td>~200ms</td>
 </tr>
 <tr>
 <td>Orchestrator</td>
-<td>Planned</td>
-<td>~92%</td>
-<td>~500ms</td>
+<td>Implemented</td>
+<td>-</td>
+<td><strong>64.8%</strong></td>
+<td>~400ms</td>
+</tr>
+<tr>
+<td>Hierarchical MoE</td>
+<td>Implemented</td>
+<td>-</td>
+<td>61.1%</td>
+<td>~1,500ms</td>
 </tr>
 <tr>
 <td>Ensemble</td>
 <td>Planned</td>
-<td>~94%</td>
+<td>~94% (est)</td>
+<td>-</td>
 <td>~700ms</td>
 </tr>
 </tbody>
 </table>
-<h3 id="planned-enhancements">Planned Enhancements</h3>
+<p><strong>Key Finding:</strong> LLM-based orchestrator routing significantly outperforms keyword-based semantic routing for specialized legal domain queries (64.8% vs 35.2%).</p>
+<h3 id="future-roadmap">Future Roadmap</h3>
+<h4>Phase 4: Improve Legal Routing Accuracy</h4>
 <ol>
-<li><strong>ML-based classifier router</strong>: Train a small model on the routing failure cases to improve accuracy to ~88%+</li>
-<li><strong>Frontier API comparison</strong>: Live testing against GPT-4o, Claude Sonnet 4 with identical test suites</li>
-<li><strong>Florida legal specialist bundle</strong>: Domain-specific bundle with RAG integration</li>
-<li><strong>Confidence-based fallback</strong>: Route low-confidence queries to multiple specialists</li>
+<li><strong>Hybrid routing</strong>: Semantic pre-filter + orchestrator confirmation for ambiguous cases</li>
+<li><strong>Domain-specific signature expansion</strong>: Per-practice-area keyword tuning</li>
+<li><strong>Confidence calibration</strong>: Lower semantic thresholds to reduce excessive fallback</li>
+<li><strong>ML classifier</strong>: Train on routing failures to improve semantic accuracy to ~88%+</li>
+</ol>
+<h4>Phase 5: RAG Integration</h4>
+<ol>
+<li><strong>Embed Florida statutes</strong>: Load 7,842 statute chunks into ChromaDB</li>
+<li><strong>Authority Pack prompts</strong>: Test retrieval with specialist system prompts</li>
+<li><strong>Citation verification</strong>: Validate citations against statute database</li>
+<li><strong>Cross-reference expansion</strong>: Automatically include referenced sections</li>
+</ol>
+<h4>Phase 6: Production Hardening</h4>
+<ol>
+<li><strong>Expand test suite</strong>: 54 → 200+ cases per practice area</li>
+<li><strong>Add intake/ops coverage</strong>: Currently underrepresented in test suite</li>
+<li><strong>Citation integrity verification</strong>: Implement heuristics H-FL-001 through H-FL-024</li>
+<li><strong>Local rules handling</strong>: Administrative orders and circuit-specific procedures</li>
+<li><strong>Frontier API comparison</strong>: Live testing against GPT-4o, Claude Sonnet 4</li>
 </ol>
 <hr />
 <h2 id="florida-legal-rag-pipeline">Florida Legal RAG Pipeline</h2>
@@ -751,6 +780,175 @@
 - Florida Evidence Code (Chapter 90)</p>
 <p>This dataset enables future testing of RAG-augmented specialist bundles for legal domain queries.</p>
 <hr />
+<h2 id="florida-legal-domain-validation">Florida Legal Domain Validation</h2>
+<p>Phase 3 extends the specialist bundle approach to Florida legal domain, testing whether routing strategies that work for general domains translate to specialized legal queries.</p>
+<h3 id="legal-bundle-architecture">Legal Bundle Architecture</h3>
+<p>Unlike the general-purpose bundle (5 specialists by domain), legal bundles use <strong>6 specialists by function</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Specialist</th>
+<th>Function</th>
+<th>Example Query</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authority</td>
+<td>Statute/case lookup</td>
+<td>"Cite the statute governing divorce residency"</td>
+</tr>
+<tr>
+<td>Procedure</td>
+<td>Deadlines, filing requirements</td>
+<td>"How many days to file an answer?"</td>
+</tr>
+<tr>
+<td>Analysis</td>
+<td>Case assessment, elements</td>
+<td>"What are the elements of negligence?"</td>
+</tr>
+<tr>
+<td>Drafting</td>
+<td>Document preparation</td>
+<td>"Draft a motion for summary judgment"</td>
+</tr>
+<tr>
+<td>Intake</td>
+<td>Initial consultation</td>
+<td>"Do I have a case for wrongful termination?"</td>
+</tr>
+<tr>
+<td>Ops</td>
+<td>Calculations, automation</td>
+<td>"Calculate child support using guidelines"</td>
+</tr>
+</tbody>
+</table>
+<p>Three practice-area bundles were created: <strong>Criminal</strong>, <strong>Civil</strong>, and <strong>Family</strong> (54 total test cases).</p>
+<h3 id="router-configuration-changes">Router Configuration Changes</h3>
+<h4>Threshold Increases</h4>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Before</th>
+<th>After</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>similarity_threshold</td>
+<td>0.15</td>
+<td>0.20</td>
+<td>Reduce false positives</td>
+</tr>
+<tr>
+<td>confidence_threshold</td>
+<td>0.30</td>
+<td>0.45</td>
+<td>Require stronger matches</td>
+</tr>
+<tr>
+<td>escalation_threshold</td>
+<td>0.40</td>
+<td>0.55</td>
+<td>Fewer escalations to orchestrator</td>
+</tr>
+</tbody>
+</table>
+<h4>Authority Signature Fixes</h4>
+<ul>
+<li><strong>Removed</strong>: Standalone <code>"cite"</code> (too broad, stealing procedure prompts)</li>
+<li><strong>Added</strong>: <code>"cite the statute"</code>, <code>"cite the rule"</code>, <code>"provide a citation"</code>, <code>"what statute governs"</code></li>
+<li><strong>Moved from procedure</strong>: <code>"statute of limitations"</code>, <code>"tolling"</code>, <code>"95.11"</code> (these are statute lookups, not deadline calculations)</li>
+</ul>
+<h4>Drafting Signature Fixes</h4>
+<ul>
+<li><strong>Removed</strong>: <code>"motion to"</code>, <code>"complaint"</code>, <code>"petition"</code>, <code>"answer"</code> (appear in analysis/procedure questions)</li>
+<li><strong>Added</strong>: <code>"prepare"</code>, <code>"generate"</code>, <code>"revise"</code>, <code>"rewrite"</code>, <code>"redline"</code>, <code>"template"</code>, <code>"fill out"</code></li>
+</ul>
+<h4>New Router Files Created</h4>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Strategy</th>
+<th>Key Feature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>legal-florida-orchestrator-router.json</code></td>
+<td>Orchestrator</td>
+<td>Legal-specific system prompt with routing rules</td>
+</tr>
+<tr>
+<td><code>legal-florida-hierarchical-moe-router.json</code></td>
+<td>MoE</td>
+<td>Configurable <code>low_score_threshold: 5</code></td>
+</tr>
+<tr>
+<td><code>legal-florida-{criminal,civil,family}-semantic-router.json</code></td>
+<td>Semantic</td>
+<td>Practice-area specialist mapping</td>
+</tr>
+</tbody>
+</table>
+<h4>Code Change</h4>
+<p>Made MoE <code>low_score_threshold</code> configurable in <code>Invoke-BundleRouter.ps1</code> (was hardcoded at 3).</p>
+<h3 id="florida-legal-benchmark-results">Florida Legal Benchmark Results</h3>
+<table>
+<thead>
+<tr>
+<th>Router Strategy</th>
+<th>Criminal (18)</th>
+<th>Civil (18)</th>
+<th>Family (18)</th>
+<th>Overall (54)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Semantic</td>
+<td>38.9% (7)</td>
+<td>44.4% (8)</td>
+<td>22.2% (4)</td>
+<td><strong>35.2%</strong></td>
+</tr>
+<tr>
+<td>Orchestrator</td>
+<td>77.8% (14)</td>
+<td>44.4% (8)</td>
+<td>72.2% (13)</td>
+<td><strong>64.8%</strong></td>
+</tr>
+<tr>
+<td>Hierarchical MoE</td>
+<td>77.8% (14)</td>
+<td>55.6% (10)</td>
+<td>50.0% (9)</td>
+<td><strong>61.1%</strong></td>
+</tr>
+<tr>
+<td>Oracle</td>
+<td>100% (18)</td>
+<td>100% (18)</td>
+<td>100% (18)</td>
+<td><strong>100%</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="analysis-why-legal-routing-is-different">Analysis: Why Legal Routing is Different</h3>
+<ol>
+<li><strong>Authority vs Procedure requires domain knowledge</strong>: "What is the statute of limitations?" is a statute lookup (authority), not a deadline question (procedure)—semantic keywords can't distinguish this.</li>
+<li><strong>Civil practice area shows highest overlap</strong>: Summary judgment standards, service requirements, and discovery rules blur the authority/procedure boundary. All three routers struggle here.</li>
+<li><strong>Criminal has clearest intent separation</strong>: Speedy trial deadlines, arraignment procedures, and bail factors are more distinct, yielding the best routing results.</li>
+<li><strong>Semantic signatures need per-domain tuning</strong>: Generic legal keywords work poorly; practice-area-specific patterns would improve accuracy.</li>
+<li><strong>Orchestrator's system prompt makes the difference</strong>: Explicit routing rules ("Route SOL questions to authority, not procedure") give the LLM context that keyword matching lacks.</li>
+</ol>
+<hr />
 <h2 id="reproducibility">Reproducibility</h2>
 <h3 id="run-the-benchmark">Run the Benchmark</h3>
 <pre><code class="language-powershell"># Run the 573-test parallel benchmark
@@ -766,6 +964,40 @@
 # Aggregate results across runs
 .\scripts\aggregate-results.ps1 -ResultDir &quot;results/raw&quot; -ShowDetails
 </code></pre>
+<h3 id="run-florida-legal-benchmarks">Run Florida Legal Benchmarks</h3>
+<pre><code class="language-powershell"># Compare routing strategies for Florida criminal law
+.\scripts\benchmark-routing.ps1 `
+    -BundleConfig &quot;.\configs\bundles\legal-florida-criminal-bundle.json&quot; `
+    -RouterConfigs @(
+        &quot;.\configs\routers\legal-florida-criminal-semantic-router.json&quot;,
+        &quot;.\configs\routers\legal-florida-orchestrator-router.json&quot;,
+        &quot;.\configs\routers\legal-florida-hierarchical-moe-router.json&quot;
+    ) `
+    -TestSuite &quot;.\test-suites\legal\florida\florida-criminal.json&quot; `
+    -IncludeOracle
+
+# Compare routing strategies for Florida civil law
+.\scripts\benchmark-routing.ps1 `
+    -BundleConfig &quot;.\configs\bundles\legal-florida-civil-bundle.json&quot; `
+    -RouterConfigs @(
+        &quot;.\configs\routers\legal-florida-civil-semantic-router.json&quot;,
+        &quot;.\configs\routers\legal-florida-orchestrator-router.json&quot;,
+        &quot;.\configs\routers\legal-florida-hierarchical-moe-router.json&quot;
+    ) `
+    -TestSuite &quot;.\test-suites\legal\florida\florida-civil.json&quot; `
+    -IncludeOracle
+
+# Compare routing strategies for Florida family law
+.\scripts\benchmark-routing.ps1 `
+    -BundleConfig &quot;.\configs\bundles\legal-florida-family-bundle.json&quot; `
+    -RouterConfigs @(
+        &quot;.\configs\routers\legal-florida-family-semantic-router.json&quot;,
+        &quot;.\configs\routers\legal-florida-orchestrator-router.json&quot;,
+        &quot;.\configs\routers\legal-florida-hierarchical-moe-router.json&quot;
+    ) `
+    -TestSuite &quot;.\test-suites\legal\florida\florida-family.json&quot; `
+    -IncludeOracle
+</code></pre>
 <h3 id="data-locations">Data Locations</h3>
 <table>
 <thead>
@@ -776,24 +1008,44 @@
 </thead>
 <tbody>
 <tr>
-<td>Bundle Config</td>
+<td>Bundle Config (General)</td>
 <td><code>configs/bundles/general-bundle.json</code></td>
 </tr>
 <tr>
-<td>Router Config</td>
+<td>Bundle Config (FL Legal)</td>
+<td><code>configs/bundles/legal-florida-{criminal,civil,family}-bundle.json</code></td>
+</tr>
+<tr>
+<td>Router Config (Semantic)</td>
 <td><code>configs/routers/semantic-router.json</code></td>
 </tr>
 <tr>
-<td>Test Suite</td>
+<td>Router Config (FL Orchestrator)</td>
+<td><code>configs/routers/legal-florida-orchestrator-router.json</code></td>
+</tr>
+<tr>
+<td>Router Config (FL MoE)</td>
+<td><code>configs/routers/legal-florida-hierarchical-moe-router.json</code></td>
+</tr>
+<tr>
+<td>Router Config (FL Semantic)</td>
+<td><code>configs/routers/legal-florida-{criminal,civil,family}-semantic-router.json</code></td>
+</tr>
+<tr>
+<td>Test Suite (General)</td>
 <td><code>test-suites/mixed/mixed-benchmark.json</code></td>
 </tr>
 <tr>
-<td>Raw Results</td>
-<td><code>results/raw/2026-01-05_*_bundle_benchmark_*.json</code></td>
+<td>Test Suite (FL Legal)</td>
+<td><code>test-suites/legal/florida/florida-{criminal,civil,family}.json</code></td>
 </tr>
 <tr>
-<td>Speed Benchmarks</td>
-<td><code>results/raw/2026-01-02_005430_speed_benchmark.json</code></td>
+<td>FL Statute Chunks</td>
+<td><code>extracted-statutes/chunks/florida-statutes.jsonl</code></td>
+</tr>
+<tr>
+<td>Raw Results</td>
+<td><code>results/raw/2026-01-*_*.json</code></td>
 </tr>
 </tbody>
 </table>
