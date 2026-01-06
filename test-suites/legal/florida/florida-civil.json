@@ -1,0 +1,157 @@
+{
+  "domain": "legal",
+  "subdomain": "civil",
+  "jurisdiction": "florida",
+  "version": "1.0",
+  "description": "Florida civil litigation and procedure test cases",
+  "metadata": {
+    "source": "Florida Rules of Civil Procedure, Florida Statutes",
+    "heuristics_tested": ["H-FL-001", "H-FL-002", "H-FL-005", "H-FL-020", "H-FL-021"]
+  },
+  "cases": [
+    {
+      "id": "fl-civil-001",
+      "prompt": "What is the standard for summary judgment under Florida Rule of Civil Procedure 1.510?",
+      "expected_specialist": "fl-civil-authority",
+      "expected_response_contains": ["1.510", "genuine issue", "material fact"],
+      "difficulty": "medium",
+      "tags": ["summary-judgment", "standard"]
+    },
+    {
+      "id": "fl-civil-002",
+      "prompt": "How many days does a defendant have to file an answer to a complaint in Florida?",
+      "expected_specialist": "fl-civil-procedure",
+      "expected_response_contains": ["20", "days", "1.140"],
+      "difficulty": "easy",
+      "tags": ["answer", "deadline", "pleading"]
+    },
+    {
+      "id": "fl-civil-003",
+      "prompt": "What is the statute of limitations for a negligence claim in Florida?",
+      "expected_specialist": "fl-civil-authority",
+      "expected_response_contains": ["4", "years", "95.11"],
+      "difficulty": "easy",
+      "tags": ["statute-of-limitations", "negligence"]
+    },
+    {
+      "id": "fl-civil-004",
+      "prompt": "What is the statute of limitations for a breach of written contract in Florida?",
+      "expected_specialist": "fl-civil-authority",
+      "expected_response_contains": ["5", "years", "95.11"],
+      "difficulty": "easy",
+      "tags": ["statute-of-limitations", "contract"]
+    },
+    {
+      "id": "fl-civil-005",
+      "prompt": "Cite the Florida statute governing service of process requirements.",
+      "expected_specialist": "fl-civil-authority",
+      "expected_response_contains": ["Chapter 48", "48."],
+      "difficulty": "medium",
+      "tags": ["service-of-process", "citation"]
+    },
+    {
+      "id": "fl-civil-006",
+      "prompt": "What is the scope of discovery under Florida Rules of Civil Procedure?",
+      "expected_specialist": "fl-civil-procedure",
+      "expected_response_contains": ["1.280", "relevant", "reasonably calculated"],
+      "difficulty": "medium",
+      "tags": ["discovery", "scope"]
+    },
+    {
+      "id": "fl-civil-007",
+      "prompt": "How does Florida Rule 2.514 calculate time periods for procedural deadlines?",
+      "expected_specialist": "fl-civil-procedure",
+      "expected_response_contains": ["2.514", "exclude", "last day", "weekend"],
+      "difficulty": "medium",
+      "tags": ["deadline", "time-calculation"]
+    },
+    {
+      "id": "fl-civil-008",
+      "prompt": "What additional time is added to response deadlines when service is by mail under Florida rules?",
+      "expected_specialist": "fl-civil-procedure",
+      "expected_response_contains": ["5", "days", "mail"],
+      "difficulty": "easy",
+      "tags": ["service", "time-extension", "mail"]
+    },
+    {
+      "id": "fl-civil-009",
+      "prompt": "What is the standard for granting a motion to dismiss under Florida Rule 1.140(b)(6)?",
+      "expected_specialist": "fl-civil-analysis",
+      "expected_response_contains": ["1.140", "failure to state", "claim"],
+      "difficulty": "medium",
+      "tags": ["motion-to-dismiss", "standard"]
+    },
+    {
+      "id": "fl-civil-010",
+      "prompt": "Under Florida comparative fault law, can a plaintiff who is 60% at fault recover damages?",
+      "expected_specialist": "fl-civil-analysis",
+      "expected_response_contains": ["768.81", "comparative", "modified"],
+      "difficulty": "hard",
+      "tags": ["comparative-fault", "damages", "recovery"]
+    },
+    {
+      "id": "fl-civil-011",
+      "prompt": "What is required for a valid affidavit in support of summary judgment under Florida law?",
+      "expected_specialist": "fl-civil-procedure",
+      "expected_response_contains": ["personal knowledge", "admissible", "1.510"],
+      "difficulty": "medium",
+      "tags": ["affidavit", "summary-judgment", "requirements"]
+    },
+    {
+      "id": "fl-civil-012",
+      "prompt": "Draft interrogatories for a slip and fall case in Florida.",
+      "expected_specialist": "fl-civil-drafting",
+      "expected_response_contains": ["INTERROGATORIES", "incident", "injuries", "witnesses"],
+      "difficulty": "hard",
+      "tags": ["drafting", "discovery", "interrogatories"]
+    },
+    {
+      "id": "fl-civil-013",
+      "prompt": "What are the page limits for briefs in the Florida District Courts of Appeal?",
+      "expected_specialist": "fl-civil-procedure",
+      "expected_response_contains": ["9.210", "50", "pages"],
+      "difficulty": "medium",
+      "tags": ["appeal", "brief", "page-limit"]
+    },
+    {
+      "id": "fl-civil-014",
+      "prompt": "I was in a car accident in Orange County 3 years ago and want to sue. Is it too late?",
+      "expected_specialist": "fl-civil-intake",
+      "expected_response_contains": ["statute of limitations", "4 years", "negligence"],
+      "difficulty": "easy",
+      "tags": ["intake", "statute-of-limitations", "personal-injury"]
+    },
+    {
+      "id": "fl-civil-015",
+      "prompt": "What is the standard for awarding attorney's fees in Florida civil cases?",
+      "expected_specialist": "fl-civil-authority",
+      "expected_response_contains": ["57.105", "prevailing party", "contract"],
+      "difficulty": "medium",
+      "tags": ["attorney-fees", "standard"]
+    },
+    {
+      "id": "fl-civil-016",
+      "prompt": "Does Florida follow the American Rule or English Rule for attorney's fees?",
+      "expected_specialist": "fl-civil-analysis",
+      "expected_response_contains": ["American Rule", "each party", "own"],
+      "difficulty": "medium",
+      "tags": ["attorney-fees", "rule"]
+    },
+    {
+      "id": "fl-civil-017",
+      "prompt": "What are the requirements for a certificate of service under Florida Rules of Civil Procedure?",
+      "expected_specialist": "fl-civil-procedure",
+      "expected_response_contains": ["1.080", "certificate", "service", "date"],
+      "difficulty": "easy",
+      "tags": ["certificate-of-service", "requirements"]
+    },
+    {
+      "id": "fl-civil-018",
+      "prompt": "Analyze whether a forum selection clause in a contract is enforceable under Florida law.",
+      "expected_specialist": "fl-civil-analysis",
+      "expected_response_contains": ["forum selection", "Manrique", "enforceable", "public policy"],
+      "difficulty": "hard",
+      "tags": ["forum-selection", "contract", "enforceability"]
+    }
+  ]
+}

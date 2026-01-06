@@ -1,0 +1,133 @@
+{
+  "name": "legal-florida-civil-bundle",
+  "version": "1.0.0",
+  "description": "Florida civil litigation specialist bundle with RAG-enabled authority retrieval",
+  "jurisdiction": "florida",
+  "practice_area": "civil",
+  "specialists": [
+    {
+      "id": "fl-civil-authority",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["authority", "citations", "statutes", "rules"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "Florida civil statutes, rules of civil procedure, evidence code citations",
+      "rag_enabled": true,
+      "keywords": [
+        "cite", "Fla. Stat.", "Fla. R. Civ. P.", "chapter 90", "evidence code",
+        "what statute", "what rule", "section", "95.11", "768.", "627.", "624.",
+        "So. 3d", "DCA", "Florida Supreme Court", "case law", "precedent",
+        "Fla. Const.", "constitutional"
+      ]
+    },
+    {
+      "id": "fl-civil-procedure",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["procedure", "deadlines", "discovery", "motions"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Florida civil procedure - pleadings, discovery, summary judgment (1.510), service",
+      "rag_enabled": true,
+      "keywords": [
+        "1.510", "summary judgment", "genuine issue", "material fact",
+        "1.140", "motion to dismiss", "failure to state a claim",
+        "discovery", "1.280", "interrogatories", "request for production", "deposition",
+        "deadline", "how many days", "time limit", "service", "notice",
+        "1.070", "service of process", "chapter 48", "constructive service"
+      ]
+    },
+    {
+      "id": "fl-civil-analysis",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["analysis", "elements", "damages", "assessment"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Civil case analysis - elements of claims, damages, case assessment",
+      "rag_enabled": true,
+      "keywords": [
+        "analyze", "elements", "prima facie", "burden of proof",
+        "negligence", "breach of contract", "fraud", "damages",
+        "comparative fault", "768.81", "apportionment",
+        "likelihood", "strengths", "weaknesses", "strategy", "settlement"
+      ]
+    },
+    {
+      "id": "fl-civil-drafting",
+      "model": "mistral:7b-instruct",
+      "domains": ["legal"],
+      "subdomains": ["drafting", "motions", "pleadings", "discovery"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Civil litigation document drafting - complaints, motions, discovery",
+      "rag_enabled": false,
+      "keywords": [
+        "draft", "write a motion", "complaint", "answer", "counterclaim",
+        "motion for summary judgment", "motion to compel", "brief",
+        "interrogatories", "request for production", "request for admission",
+        "proposed order", "notice of hearing"
+      ]
+    },
+    {
+      "id": "fl-civil-intake",
+      "model": "phi3:3.8b",
+      "domains": ["legal"],
+      "subdomains": ["intake", "triage", "jurisdiction"],
+      "size_class": "tiny",
+      "parameters_b": 3.8,
+      "specialization": "Client intake and case triage for civil matters",
+      "rag_enabled": false,
+      "keywords": [
+        "new client", "potential case", "what happened",
+        "initial consultation", "county", "circuit", "jurisdiction",
+        "statute of limitations", "when did this happen"
+      ]
+    },
+    {
+      "id": "fl-civil-ops",
+      "model": "codellama:7b-instruct",
+      "domains": ["legal", "code"],
+      "subdomains": ["operations", "automation", "scripts"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Legal operations - deadline calculations, docket scripts, automation",
+      "rag_enabled": false,
+      "keywords": [
+        "calculate", "deadline", "calendar", "docket", "script",
+        "automate", "spreadsheet", "database", "query", "damages calculation"
+      ]
+    },
+    {
+      "id": "fl-civil-fallback",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["general-legal"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "General civil litigation fallback",
+      "fallback": true,
+      "rag_enabled": false,
+      "keywords": ["civil", "lawsuit", "plaintiff", "defendant", "court"]
+    }
+  ],
+  "escalation": {
+    "model": "qwen2.5:32b",
+    "triggers": [
+      "complex multi-party litigation",
+      "federal question or diversity jurisdiction overlap",
+      "class action considerations",
+      "routing confidence below 0.4"
+    ],
+    "parameters_b": 32
+  },
+  "ensemble_strategy": "single",
+  "overlap_handling": "highest_confidence",
+  "metadata": {
+    "author": "benchmark-suite",
+    "created": "2026-01-06T00:00:00Z",
+    "heuristics_version": "1.0",
+    "rag_database": "extracted-statutes/florida-statutes.db"
+  }
+}

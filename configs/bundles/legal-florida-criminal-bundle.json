@@ -1,0 +1,131 @@
+{
+  "name": "legal-florida-criminal-bundle",
+  "version": "1.0.0",
+  "description": "Florida criminal defense specialist bundle with RAG-enabled authority retrieval",
+  "jurisdiction": "florida",
+  "practice_area": "criminal",
+  "specialists": [
+    {
+      "id": "fl-crim-authority",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["authority", "citations", "statutes", "rules"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "Florida criminal statutes, rules of criminal procedure, evidence code citations",
+      "rag_enabled": true,
+      "keywords": [
+        "cite", "Fla. Stat.", "Fla. R. Crim. P.", "chapter 90", "evidence code",
+        "what statute", "what rule", "section", "775.", "784.", "790.", "810.", "812.", "893.",
+        "So. 3d", "DCA", "Florida Supreme Court", "case law", "precedent",
+        "Fla. Const.", "constitutional"
+      ]
+    },
+    {
+      "id": "fl-crim-procedure",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["procedure", "deadlines", "speedy-trial", "pretrial"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Florida criminal procedure - speedy trial (3.191), arraignment, pretrial motions, sentencing",
+      "rag_enabled": true,
+      "keywords": [
+        "speedy trial", "3.191", "175 days", "90 days", "recapture", "demand",
+        "arraignment", "3.160", "bail", "bond", "pretrial", "detention",
+        "deadline", "how many days", "time limit", "notice", "service",
+        "sentencing", "guidelines", "scoresheet", "departure", "downward"
+      ]
+    },
+    {
+      "id": "fl-crim-analysis",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["analysis", "elements", "defenses", "assessment"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Criminal case analysis - elements of offenses, available defenses, case assessment",
+      "rag_enabled": true,
+      "keywords": [
+        "analyze", "elements", "prove", "defense", "affirmative defense",
+        "self-defense", "stand your ground", "776.", "justification",
+        "likelihood", "strengths", "weaknesses", "strategy",
+        "suppression", "motion to suppress", "4th amendment", "5th amendment"
+      ]
+    },
+    {
+      "id": "fl-crim-drafting",
+      "model": "mistral:7b-instruct",
+      "domains": ["legal"],
+      "subdomains": ["drafting", "motions", "briefs", "pleadings"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Criminal defense document drafting - motions, briefs, memoranda",
+      "rag_enabled": false,
+      "keywords": [
+        "draft", "write a motion", "motion to suppress", "motion to dismiss",
+        "motion in limine", "brief", "memorandum", "proposed order",
+        "notice of appearance", "discovery demand"
+      ]
+    },
+    {
+      "id": "fl-crim-intake",
+      "model": "phi3:3.8b",
+      "domains": ["legal"],
+      "subdomains": ["intake", "triage", "jurisdiction"],
+      "size_class": "tiny",
+      "parameters_b": 3.8,
+      "specialization": "Client intake and case triage for criminal matters",
+      "rag_enabled": false,
+      "keywords": [
+        "new client", "arrested", "charged with", "what happened",
+        "initial consultation", "county", "circuit", "jurisdiction",
+        "bond hearing", "first appearance"
+      ]
+    },
+    {
+      "id": "fl-crim-ops",
+      "model": "codellama:7b-instruct",
+      "domains": ["legal", "code"],
+      "subdomains": ["operations", "automation", "scripts"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Legal operations - deadline calculations, docket scripts, automation",
+      "rag_enabled": false,
+      "keywords": [
+        "calculate", "deadline", "calendar", "docket", "script",
+        "automate", "spreadsheet", "database", "query"
+      ]
+    },
+    {
+      "id": "fl-crim-fallback",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["general-legal"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "General criminal law fallback",
+      "fallback": true,
+      "rag_enabled": false,
+      "keywords": ["criminal", "defense", "attorney", "lawyer", "court"]
+    }
+  ],
+  "escalation": {
+    "model": "qwen2.5:32b",
+    "triggers": [
+      "multi-issue case involving federal overlap",
+      "capital case or life felony",
+      "complex suppression issues",
+      "routing confidence below 0.4"
+    ],
+    "parameters_b": 32
+  },
+  "ensemble_strategy": "single",
+  "overlap_handling": "highest_confidence",
+  "metadata": {
+    "author": "benchmark-suite",
+    "created": "2026-01-06T00:00:00Z",
+    "heuristics_version": "1.0",
+    "rag_database": "extracted-statutes/florida-statutes.db"
+  }
+}

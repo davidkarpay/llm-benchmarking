@@ -1,6 +1,6 @@
 # Testing Status - LLM Benchmarking Suite
 
-**Last Updated**: 2026-01-03
+**Last Updated**: 2026-01-06
 **Machine**: TITAN
 **Current Session Operator**: David (user)
 
@@ -16,7 +16,7 @@ A new research framework has been implemented to test the hypothesis that **spec
 |-------|-------------|--------|
 | **Phase 1** | Foundation (schemas, configs, bundle benchmark script) | ✅ Complete |
 | **Phase 2** | Routing strategies (all 5 strategies + comparison script) | ✅ Complete |
-| **Phase 3** | Florida domain specialization (legal/medical test suites) | ⏳ Pending User Data |
+| **Phase 3** | Florida domain specialization (legal bundles, RAG, tests) | ✅ Complete |
 | **Phase 4** | Frontier comparison (API clients, compare script) | ✅ Complete |
 | **Phase 5** | Advanced features (ensemble voting, templates) | ✅ Partial (dashboard pending) |
 
@@ -52,18 +52,36 @@ A new research framework has been implemented to test the hypothesis that **spec
 - `test-suites/_templates/legal-template.json` - Jurisdiction-agnostic legal template
 - `test-suites/_templates/medical-template.json` - Jurisdiction-agnostic medical template
 
-### Phase 3 - Pending User Data
+### Phase 3 - Florida Legal Specialization (Completed 2026-01-06)
 
-User will provide Florida-specific data for domain specialist test suites:
-- Florida Evidence Code
-- Florida Civil Procedure
-- Florida Criminal Procedure
-- Jurisdictional/Local Rules
-- Rules Governing the Bar
-- Florida Statutes
-- Decisional law (FL Supreme Court, SCOTUS, FL DCAs)
+**Bundle Configs Created:**
+- `configs/bundles/legal-florida-criminal-bundle.json` - 7 specialists for criminal defense
+- `configs/bundles/legal-florida-civil-bundle.json` - 6 specialists for civil litigation
+- `configs/bundles/legal-florida-family-bundle.json` - 6 specialists for family law
 
-**Expected output:** `test-suites/legal/florida/` with 50+ test cases
+**Router Config:**
+- `configs/routers/legal-florida-semantic-router.json` - Intent-based routing for legal queries
+
+**Prompt Contracts (6 files in `prompts/legal/florida/`):**
+- `authority-contract.md` - H-FL-001/002/004: cite-or-decline, court hierarchy
+- `procedure-contract.md` - Deadline calculation, Fla. R. Jud. Admin. 2.514
+- `analysis-contract.md` - H-FL-005/019/020/021: DCA conflicts, Pardo rule
+- `drafting-contract.md` - Citation placeholder policy, format requirements
+- `intake-contract.md` - H-FL-008: ordinance locality required
+- `system-prompts.ps1` - PowerShell module with specialist prompts
+
+**RAG Integration:**
+- `scripts/rag/query_fl_statutes.py` - Python FTS5 search (stdlib only)
+- `scripts/utils/Get-FloridaLegalContext.ps1` - PowerShell wrapper
+
+**Test Suites (54 tests in `test-suites/legal/florida/`):**
+- `florida-criminal.json` - 18 tests (speedy trial, bail, evidence, sentencing)
+- `florida-civil.json` - 18 tests (summary judgment, discovery, SOL, service)
+- `florida-family.json` - 18 tests (dissolution, custody, support, alimony)
+
+**Smoke Benchmark Results (3 tests):**
+- Routing Accuracy: 33.3% (router needs tuning for legal domain)
+- Response Accuracy: 100% (specialists respond correctly)
 
 ### Outstanding Work
 

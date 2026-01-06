@@ -1,0 +1,157 @@
+{
+  "domain": "legal",
+  "subdomain": "family",
+  "jurisdiction": "florida",
+  "version": "1.0",
+  "description": "Florida family law test cases covering dissolution, custody, support, and paternity",
+  "metadata": {
+    "source": "Florida Statutes Chapters 61 and 742, Florida Family Law Rules of Procedure",
+    "heuristics_tested": ["H-FL-001", "H-FL-002", "H-FL-008"]
+  },
+  "cases": [
+    {
+      "id": "fl-family-001",
+      "prompt": "What is the residency requirement for filing for divorce in Florida?",
+      "expected_specialist": "fl-family-authority",
+      "expected_response_contains": ["6 months", "61.021", "residency"],
+      "difficulty": "easy",
+      "tags": ["dissolution", "residency", "requirement"]
+    },
+    {
+      "id": "fl-family-002",
+      "prompt": "What are the grounds for divorce in Florida?",
+      "expected_specialist": "fl-family-authority",
+      "expected_response_contains": ["irretrievably broken", "mental incapacity", "61.052"],
+      "difficulty": "easy",
+      "tags": ["dissolution", "grounds"]
+    },
+    {
+      "id": "fl-family-003",
+      "prompt": "How many days does a party have to respond to mandatory disclosure in a Florida family law case?",
+      "expected_specialist": "fl-family-procedure",
+      "expected_response_contains": ["45", "days", "12.285"],
+      "difficulty": "easy",
+      "tags": ["disclosure", "deadline", "financial"]
+    },
+    {
+      "id": "fl-family-004",
+      "prompt": "Cite the Florida statute listing the factors for determining the best interests of the child in custody cases.",
+      "expected_specialist": "fl-family-authority",
+      "expected_response_contains": ["61.13", "best interests", "factors"],
+      "difficulty": "medium",
+      "tags": ["custody", "best-interests", "citation"]
+    },
+    {
+      "id": "fl-family-005",
+      "prompt": "What are the 20 factors courts consider under Fla. Stat. 61.13(3) for parental responsibility?",
+      "expected_specialist": "fl-family-authority",
+      "expected_response_contains": ["61.13", "parental responsibility", "moral fitness", "stability"],
+      "difficulty": "hard",
+      "tags": ["custody", "factors", "parental-responsibility"]
+    },
+    {
+      "id": "fl-family-006",
+      "prompt": "What is the presumption regarding shared parental responsibility in Florida?",
+      "expected_specialist": "fl-family-analysis",
+      "expected_response_contains": ["shared parental responsibility", "presumption", "detrimental"],
+      "difficulty": "medium",
+      "tags": ["custody", "shared-responsibility", "presumption"]
+    },
+    {
+      "id": "fl-family-007",
+      "prompt": "How does Florida calculate child support using the income shares model?",
+      "expected_specialist": "fl-family-procedure",
+      "expected_response_contains": ["61.30", "guidelines", "income shares", "combined"],
+      "difficulty": "medium",
+      "tags": ["child-support", "calculation", "guidelines"]
+    },
+    {
+      "id": "fl-family-008",
+      "prompt": "What are the types of alimony available under Florida law?",
+      "expected_specialist": "fl-family-authority",
+      "expected_response_contains": ["61.08", "bridge-the-gap", "rehabilitative", "durational", "permanent"],
+      "difficulty": "medium",
+      "tags": ["alimony", "types"]
+    },
+    {
+      "id": "fl-family-009",
+      "prompt": "What factors does a Florida court consider when awarding alimony?",
+      "expected_specialist": "fl-family-analysis",
+      "expected_response_contains": ["61.08", "standard of living", "duration", "earning capacity"],
+      "difficulty": "medium",
+      "tags": ["alimony", "factors"]
+    },
+    {
+      "id": "fl-family-010",
+      "prompt": "How is marital property divided in Florida divorces?",
+      "expected_specialist": "fl-family-analysis",
+      "expected_response_contains": ["equitable distribution", "61.075", "marital", "non-marital"],
+      "difficulty": "medium",
+      "tags": ["property-division", "equitable-distribution"]
+    },
+    {
+      "id": "fl-family-011",
+      "prompt": "What is the procedure for establishing paternity under Florida Statutes Chapter 742?",
+      "expected_specialist": "fl-family-procedure",
+      "expected_response_contains": ["742", "paternity", "DNA", "acknowledgment"],
+      "difficulty": "medium",
+      "tags": ["paternity", "procedure"]
+    },
+    {
+      "id": "fl-family-012",
+      "prompt": "Draft a motion to modify child support based on substantial change in circumstances.",
+      "expected_specialist": "fl-family-drafting",
+      "expected_response_contains": ["MOTION", "MODIFY", "child support", "substantial change", "WHEREFORE"],
+      "difficulty": "hard",
+      "tags": ["drafting", "motion", "child-support", "modification"]
+    },
+    {
+      "id": "fl-family-013",
+      "prompt": "What constitutes a substantial change in circumstances for modifying a parenting plan in Florida?",
+      "expected_specialist": "fl-family-analysis",
+      "expected_response_contains": ["substantial", "unanticipated", "material", "best interests"],
+      "difficulty": "hard",
+      "tags": ["modification", "parenting-plan", "standard"]
+    },
+    {
+      "id": "fl-family-014",
+      "prompt": "I am going through a divorce in Miami-Dade County. My spouse and I agree on everything. What is the process?",
+      "expected_specialist": "fl-family-intake",
+      "expected_response_contains": ["simplified dissolution", "uncontested", "settlement agreement"],
+      "difficulty": "easy",
+      "tags": ["intake", "dissolution", "uncontested"]
+    },
+    {
+      "id": "fl-family-015",
+      "prompt": "What are the requirements for a valid prenuptial agreement under Florida law?",
+      "expected_specialist": "fl-family-authority",
+      "expected_response_contains": ["61.079", "written", "voluntarily", "disclosure"],
+      "difficulty": "medium",
+      "tags": ["prenuptial", "requirements", "validity"]
+    },
+    {
+      "id": "fl-family-016",
+      "prompt": "Can a court impute income to a voluntarily unemployed parent for child support calculation?",
+      "expected_specialist": "fl-family-analysis",
+      "expected_response_contains": ["impute", "income", "voluntarily", "61.30"],
+      "difficulty": "medium",
+      "tags": ["child-support", "imputed-income"]
+    },
+    {
+      "id": "fl-family-017",
+      "prompt": "What is the time-sharing schedule terminology used in Florida family law instead of custody and visitation?",
+      "expected_specialist": "fl-family-authority",
+      "expected_response_contains": ["time-sharing", "parenting plan", "parental responsibility"],
+      "difficulty": "easy",
+      "tags": ["terminology", "time-sharing", "parenting-plan"]
+    },
+    {
+      "id": "fl-family-018",
+      "prompt": "Analyze whether a relocation from Miami to Orlando with a minor child requires court approval under Florida law.",
+      "expected_specialist": "fl-family-analysis",
+      "expected_response_contains": ["61.13001", "relocation", "50 miles", "consent", "petition"],
+      "difficulty": "hard",
+      "tags": ["relocation", "analysis", "child"]
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "domain": "legal",
+  "subdomain": "criminal",
+  "jurisdiction": "florida",
+  "version": "1.0",
+  "description": "Florida criminal law and procedure test cases",
+  "metadata": {
+    "source": "Florida Rules of Criminal Procedure, Florida Statutes Title XLVII",
+    "heuristics_tested": ["H-FL-001", "H-FL-002", "H-FL-005", "H-FL-020"]
+  },
+  "cases": [
+    {
+      "id": "fl-crim-001",
+      "prompt": "What is the speedy trial deadline for a felony charge in Florida?",
+      "expected_specialist": "fl-crim-procedure",
+      "expected_response_contains": ["175", "days", "3.191"],
+      "difficulty": "easy",
+      "tags": ["speedy-trial", "felony", "deadline"]
+    },
+    {
+      "id": "fl-crim-002",
+      "prompt": "What is the speedy trial deadline for a misdemeanor charge in Florida?",
+      "expected_specialist": "fl-crim-procedure",
+      "expected_response_contains": ["90", "days", "3.191"],
+      "difficulty": "easy",
+      "tags": ["speedy-trial", "misdemeanor", "deadline"]
+    },
+    {
+      "id": "fl-crim-003",
+      "prompt": "Cite the Florida rule governing speedy trial recapture after a demand for discharge.",
+      "expected_specialist": "fl-crim-authority",
+      "expected_response_contains": ["3.191", "recapture"],
+      "difficulty": "medium",
+      "tags": ["speedy-trial", "recapture", "citation"]
+    },
+    {
+      "id": "fl-crim-004",
+      "prompt": "What rights must be explained to a defendant at arraignment under Florida criminal procedure?",
+      "expected_specialist": "fl-crim-procedure",
+      "expected_response_contains": ["counsel", "plea", "charges"],
+      "difficulty": "medium",
+      "tags": ["arraignment", "rights"]
+    },
+    {
+      "id": "fl-crim-005",
+      "prompt": "Under Florida law, what factors does a court consider when setting bail?",
+      "expected_specialist": "fl-crim-authority",
+      "expected_response_contains": ["flight", "danger", "community", "ties"],
+      "difficulty": "medium",
+      "tags": ["bail", "pretrial", "factors"]
+    },
+    {
+      "id": "fl-crim-006",
+      "prompt": "What is the statute of limitations for a first degree felony in Florida?",
+      "expected_specialist": "fl-crim-authority",
+      "expected_response_contains": ["4", "years", "775.15"],
+      "difficulty": "easy",
+      "tags": ["statute-of-limitations", "felony"]
+    },
+    {
+      "id": "fl-crim-007",
+      "prompt": "Cite the Florida statute that governs self-defense and use of force.",
+      "expected_specialist": "fl-crim-authority",
+      "expected_response_contains": ["776.012", "776.013"],
+      "difficulty": "easy",
+      "tags": ["self-defense", "stand-your-ground", "citation"]
+    },
+    {
+      "id": "fl-crim-008",
+      "prompt": "Under Florida's Stand Your Ground law, is there a duty to retreat before using deadly force?",
+      "expected_specialist": "fl-crim-analysis",
+      "expected_response_contains": ["no duty", "retreat", "776"],
+      "difficulty": "easy",
+      "tags": ["stand-your-ground", "duty-to-retreat"]
+    },
+    {
+      "id": "fl-crim-009",
+      "prompt": "What hearsay exceptions are available under Florida Evidence Code Chapter 90 for an excited utterance?",
+      "expected_specialist": "fl-crim-authority",
+      "expected_response_contains": ["90.803", "excited", "utterance", "startling"],
+      "difficulty": "medium",
+      "tags": ["hearsay", "exception", "evidence"]
+    },
+    {
+      "id": "fl-crim-010",
+      "prompt": "What is the admissibility standard for similar fact evidence under Florida law?",
+      "expected_specialist": "fl-crim-authority",
+      "expected_response_contains": ["90.404", "Williams", "similar"],
+      "difficulty": "hard",
+      "tags": ["evidence", "similar-fact", "admissibility"]
+    },
+    {
+      "id": "fl-crim-011",
+      "prompt": "How many days does a defendant have to file a notice of appeal in a Florida criminal case?",
+      "expected_specialist": "fl-crim-procedure",
+      "expected_response_contains": ["30", "days", "9.140"],
+      "difficulty": "medium",
+      "tags": ["appeal", "deadline", "notice"]
+    },
+    {
+      "id": "fl-crim-012",
+      "prompt": "What is the standard for ineffective assistance of counsel under Florida law?",
+      "expected_specialist": "fl-crim-analysis",
+      "expected_response_contains": ["Strickland", "deficient", "prejudice"],
+      "difficulty": "hard",
+      "tags": ["ineffective-assistance", "post-conviction"]
+    },
+    {
+      "id": "fl-crim-013",
+      "prompt": "Under Florida Sentencing Guidelines, what is a scoresheet and how is it used?",
+      "expected_specialist": "fl-crim-procedure",
+      "expected_response_contains": ["Criminal Punishment Code", "points", "lowest permissible"],
+      "difficulty": "hard",
+      "tags": ["sentencing", "scoresheet", "guidelines"]
+    },
+    {
+      "id": "fl-crim-014",
+      "prompt": "Draft a motion to dismiss for speedy trial violation under Florida Rule 3.191.",
+      "expected_specialist": "fl-crim-drafting",
+      "expected_response_contains": ["MOTION", "DISMISS", "3.191", "WHEREFORE"],
+      "difficulty": "hard",
+      "tags": ["drafting", "motion", "speedy-trial"]
+    },
+    {
+      "id": "fl-crim-015",
+      "prompt": "What is the procedure for filing a motion for postconviction relief under Florida Rule 3.850?",
+      "expected_specialist": "fl-crim-procedure",
+      "expected_response_contains": ["3.850", "postconviction", "2 years"],
+      "difficulty": "hard",
+      "tags": ["postconviction", "3.850", "procedure"]
+    },
+    {
+      "id": "fl-crim-016",
+      "prompt": "I was arrested in Broward County for DUI last night. What should I expect at my first appearance?",
+      "expected_specialist": "fl-crim-intake",
+      "expected_response_contains": ["bail", "bond", "attorney", "charges"],
+      "difficulty": "easy",
+      "tags": ["intake", "first-appearance", "dui"]
+    },
+    {
+      "id": "fl-crim-017",
+      "prompt": "What are the mandatory minimum sentences for drug trafficking in Florida?",
+      "expected_specialist": "fl-crim-authority",
+      "expected_response_contains": ["893.135", "trafficking", "minimum"],
+      "difficulty": "hard",
+      "tags": ["sentencing", "drug-trafficking", "mandatory-minimum"]
+    },
+    {
+      "id": "fl-crim-018",
+      "prompt": "Analyze whether a defendant can invoke Stand Your Ground immunity in a bar fight where he was the initial verbal aggressor.",
+      "expected_specialist": "fl-crim-analysis",
+      "expected_response_contains": ["aggressor", "provocation", "776", "immunity"],
+      "difficulty": "hard",
+      "tags": ["stand-your-ground", "analysis", "aggressor"]
+    }
+  ]
+}

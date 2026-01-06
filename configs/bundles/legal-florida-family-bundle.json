@@ -1,0 +1,131 @@
+{
+  "name": "legal-florida-family-bundle",
+  "version": "1.0.0",
+  "description": "Florida family law specialist bundle with RAG-enabled authority retrieval",
+  "jurisdiction": "florida",
+  "practice_area": "family",
+  "specialists": [
+    {
+      "id": "fl-family-authority",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["authority", "citations", "statutes", "rules"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "Florida family law statutes, family law rules of procedure, evidence citations",
+      "rag_enabled": true,
+      "keywords": [
+        "cite", "Fla. Stat.", "Fla. Fam. L. R. P.", "chapter 61", "chapter 742",
+        "what statute", "what rule", "section", "61.", "742.", "741.", "752.",
+        "So. 3d", "DCA", "Florida Supreme Court", "case law", "precedent"
+      ]
+    },
+    {
+      "id": "fl-family-procedure",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["procedure", "deadlines", "filings", "hearings"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Florida family law procedure - dissolution, parenting, support calculations",
+      "rag_enabled": true,
+      "keywords": [
+        "12.100", "petition for dissolution", "simplified dissolution",
+        "12.285", "mandatory disclosure", "financial affidavit",
+        "parenting plan", "timesharing", "best interests",
+        "child support", "guidelines", "61.30", "worksheet",
+        "deadline", "how many days", "service", "notice", "final hearing"
+      ]
+    },
+    {
+      "id": "fl-family-analysis",
+      "model": "qwen2.5:14b",
+      "domains": ["legal"],
+      "subdomains": ["analysis", "factors", "equitable-distribution", "custody"],
+      "size_class": "medium",
+      "parameters_b": 14,
+      "specialization": "Family law case analysis - alimony factors, equitable distribution, parenting",
+      "rag_enabled": true,
+      "keywords": [
+        "analyze", "factors", "61.08", "alimony", "bridge-the-gap", "rehabilitative",
+        "durational", "permanent", "equitable distribution", "61.075",
+        "marital property", "non-marital", "appreciation",
+        "best interests", "parental responsibility", "timesharing schedule"
+      ]
+    },
+    {
+      "id": "fl-family-drafting",
+      "model": "mistral:7b-instruct",
+      "domains": ["legal"],
+      "subdomains": ["drafting", "petitions", "agreements", "orders"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Family law document drafting - petitions, MSAs, parenting plans",
+      "rag_enabled": false,
+      "keywords": [
+        "draft", "petition for dissolution", "marital settlement agreement",
+        "parenting plan", "child support worksheet", "motion to modify",
+        "financial affidavit", "proposed final judgment", "QDRO"
+      ]
+    },
+    {
+      "id": "fl-family-intake",
+      "model": "phi3:3.8b",
+      "domains": ["legal"],
+      "subdomains": ["intake", "triage", "jurisdiction"],
+      "size_class": "tiny",
+      "parameters_b": 3.8,
+      "specialization": "Client intake and case triage for family law matters",
+      "rag_enabled": false,
+      "keywords": [
+        "new client", "divorce", "custody", "what happened",
+        "initial consultation", "county", "residency requirement",
+        "how long married", "children", "assets"
+      ]
+    },
+    {
+      "id": "fl-family-ops",
+      "model": "codellama:7b-instruct",
+      "domains": ["legal", "code"],
+      "subdomains": ["operations", "calculations", "scripts"],
+      "size_class": "small",
+      "parameters_b": 7,
+      "specialization": "Legal operations - child support calculations, asset spreadsheets",
+      "rag_enabled": false,
+      "keywords": [
+        "calculate", "child support", "guidelines worksheet", "income",
+        "spreadsheet", "asset division", "database", "query"
+      ]
+    },
+    {
+      "id": "fl-family-fallback",
+      "model": "llama3.1:8b",
+      "domains": ["legal"],
+      "subdomains": ["general-legal"],
+      "size_class": "small",
+      "parameters_b": 8,
+      "specialization": "General family law fallback",
+      "fallback": true,
+      "rag_enabled": false,
+      "keywords": ["family", "divorce", "custody", "support", "court"]
+    }
+  ],
+  "escalation": {
+    "model": "qwen2.5:32b",
+    "triggers": [
+      "interstate custody (UCCJEA)",
+      "high-asset complex equitable distribution",
+      "domestic violence overlay",
+      "routing confidence below 0.4"
+    ],
+    "parameters_b": 32
+  },
+  "ensemble_strategy": "single",
+  "overlap_handling": "highest_confidence",
+  "metadata": {
+    "author": "benchmark-suite",
+    "created": "2026-01-06T00:00:00Z",
+    "heuristics_version": "1.0",
+    "rag_database": "extracted-statutes/florida-statutes.db"
+  }
+}

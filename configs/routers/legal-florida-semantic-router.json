@@ -1,0 +1,154 @@
+{
+  "strategy": "semantic",
+  "description": "Intent-based semantic router for Florida legal bundles",
+  "jurisdiction": "florida",
+  "semantic_config": {
+    "embedding_model": "nomic-embed-text",
+    "similarity_threshold": 0.15,
+    "use_keywords": true,
+    "domain_signatures": {
+      "authority": [
+        "cite",
+        "what is the statute",
+        "what does the statute say",
+        "what rule governs",
+        "Fla. Stat. §",
+        "Fla. R. Civ. P.",
+        "Fla. R. Crim. P.",
+        "Fla. Fam. L. R. P.",
+        "Fla. R. App. P.",
+        "chapter 90",
+        "evidence code",
+        "So. 3d",
+        "So.3d",
+        "DCA",
+        "Florida Supreme Court",
+        "Fla. Const.",
+        "case law",
+        "precedent",
+        "holding in",
+        "ruled that",
+        "R. Regulating Fla. Bar"
+      ],
+      "procedure": [
+        "deadline",
+        "how many days",
+        "time limit",
+        "within how long",
+        "when must I file",
+        "service requirements",
+        "notice period",
+        "recapture",
+        "speedy trial",
+        "discovery deadline",
+        "response time",
+        "how to serve",
+        "file by when",
+        "statute of limitations",
+        "tolling"
+      ],
+      "analysis": [
+        "analyze this case",
+        "what are the elements",
+        "apply the law to",
+        "likelihood of success",
+        "case assessment",
+        "strengths and weaknesses",
+        "what are the defenses",
+        "compare to",
+        "is this claim viable",
+        "prima facie",
+        "burden of proof",
+        "DCA conflict",
+        "split of authority"
+      ],
+      "drafting": [
+        "draft",
+        "write a motion",
+        "write a brief",
+        "memorandum of law",
+        "proposed order",
+        "request for production",
+        "interrogatories",
+        "complaint",
+        "petition",
+        "answer",
+        "notice of",
+        "motion to",
+        "marital settlement agreement",
+        "parenting plan"
+      ],
+      "intake": [
+        "new client",
+        "initial consultation",
+        "tell me about your case",
+        "what happened",
+        "potential case",
+        "do I have a case",
+        "should I sue",
+        "was I wronged"
+      ],
+      "ops": [
+        "calculate",
+        "script",
+        "automate",
+        "spreadsheet",
+        "database query",
+        "calendar",
+        "docket",
+        "child support worksheet",
+        "damages calculation"
+      ],
+      "local_rules": [
+        "administrative order",
+        "local rule",
+        "11th Judicial Circuit",
+        "Miami-Dade",
+        "Broward",
+        "Palm Beach",
+        "Hillsborough",
+        "Orange County",
+        "9th Circuit",
+        "13th Circuit",
+        "15th Circuit",
+        "17th Circuit",
+        "division procedures"
+      ]
+    },
+    "specialist_mapping": {
+      "authority": ["fl-crim-authority", "fl-civil-authority", "fl-family-authority"],
+      "procedure": ["fl-crim-procedure", "fl-civil-procedure", "fl-family-procedure"],
+      "analysis": ["fl-crim-analysis", "fl-civil-analysis", "fl-family-analysis"],
+      "drafting": ["fl-crim-drafting", "fl-civil-drafting", "fl-family-drafting"],
+      "intake": ["fl-crim-intake", "fl-civil-intake", "fl-family-intake"],
+      "ops": ["fl-crim-ops", "fl-civil-ops", "fl-family-ops"],
+      "local_rules": ["fl-crim-authority", "fl-civil-authority", "fl-family-authority"]
+    },
+    "practice_area_detection": {
+      "criminal": [
+        "arrested", "charged with", "felony", "misdemeanor", "speedy trial",
+        "Miranda", "suppression", "bond", "bail", "sentencing", "plea",
+        "prosecution", "defendant", "criminal defense"
+      ],
+      "civil": [
+        "lawsuit", "sue", "plaintiff", "negligence", "breach of contract",
+        "damages", "personal injury", "slip and fall", "discovery",
+        "summary judgment", "complaint", "answer"
+      ],
+      "family": [
+        "divorce", "dissolution", "custody", "timesharing", "child support",
+        "alimony", "equitable distribution", "parenting plan", "modification",
+        "paternity", "domestic violence injunction"
+      ]
+    }
+  },
+  "fallback_behavior": "use_fallback_specialist",
+  "routing_timeout_ms": 3000,
+  "confidence_threshold": 0.3,
+  "escalation_threshold": 0.4,
+  "local_rule_behavior": {
+    "require_circuit_specification": true,
+    "prompt_for_circuit_if_missing": true,
+    "default_message": "Local rules vary by circuit. Which Florida judicial circuit is your case in?"
+  }
+}
