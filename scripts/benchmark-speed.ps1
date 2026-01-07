@@ -31,6 +31,9 @@ param(
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$scriptDir\utils\Export-BenchmarkResult.ps1"
 
+# Configure GPU for maximum utilization
+Set-OllamaGpuConfig -NumGpu 999 -NumThread 8
+
 Write-Host @"
 
 ╔═══════════════════════════════════════════════════════════════╗

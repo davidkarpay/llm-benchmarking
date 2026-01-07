@@ -47,6 +47,9 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$scriptDir\utils\Export-BenchmarkResult.ps1"
 . "$scriptDir\utils\Invoke-BundleRouter.ps1"
 
+# Configure GPU for maximum utilization
+Set-OllamaGpuConfig -NumGpu 999 -NumThread 8
+
 # ═══════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS FOR TOKEN METRICS
 # ═══════════════════════════════════════════════════════════════

@@ -36,6 +36,8 @@ param(
 
     [int]$Parallelism = 4,
 
+    [int]$MaxConcurrentOllama = 2,  # CUDA Optimization: Limit concurrent GPU requests
+
     [int]$BatchSize = 10,
 
     [string]$OutputDir = "C:\Users\14104\llm-benchmarks\results",
@@ -51,6 +53,9 @@ param(
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$scriptDir\utils\Export-BenchmarkResult.ps1"
 . "$scriptDir\utils\Invoke-BundleRouter.ps1"
+
+# Configure GPU for maximum utilization
+Set-OllamaGpuConfig -NumGpu 999 -NumThread 8
 
 Write-Host @"
 
@@ -277,6 +282,7 @@ Write-Host "  Bundle: $($bundle.name) (v$($bundle.version))" -ForegroundColor Wh
 Write-Host "  Specialists: $($bundle.specialists.Count)" -ForegroundColor White
 Write-Host "  Router: $($router.strategy)" -ForegroundColor White
 Write-Host "  Parallelism: $Parallelism concurrent tests" -ForegroundColor Cyan
+Write-Host "  Max Concurrent Ollama: $MaxConcurrentOllama (GPU coordination)" -ForegroundColor Cyan
 
 $totalParams = 0
 foreach ($s in $bundle.specialists) {
@@ -365,20 +371,25 @@ $results = [System.Collections.Concurrent.ConcurrentBag[object]]::new()
 $completed = [ref]0
 $totalCases = $testCases.Count
 
+# CUDA Optimization: Create semaphore to limit concurrent Ollama GPU requests
+# This prevents GPU contention when Parallelism > MaxConcurrentOllama
+$ollamaSemaphore = [System.Threading.Semaphore]::new($MaxConcurrentOllama, $MaxConcurrentOllama)
+Write-Host "GPU Semaphore: Limiting to $MaxConcurrentOllama concurrent Ollama calls" -ForegroundColor DarkGray
+
 # Create runspace pool
 $runspacePool = [runspacefactory]::CreateRunspacePool(1, $Parallelism)
 $runspacePool.Open()
 
 # Import functions into runspaces via script block
 $testScriptBlock = {
-    param($TestCase, $Bundle, $Router, $TotalParams, $ScriptDir)
+    param($TestCase, $Bundle, $Router, $TotalParams, $ScriptDir, $Semaphore)
 
     # Re-import utilities in the runspace
     . "$ScriptDir\utils\Export-BenchmarkResult.ps1"
     . "$ScriptDir\utils\Invoke-BundleRouter.ps1"
 
     function Invoke-OllamaWithMetrics {
-        param([string]$Model, [string]$Prompt)
+        param([string]$Model, [string]$Prompt, $GpuSemaphore)
 
         $result = @{
             response = ""
@@ -386,45 +397,65 @@ $testScriptBlock = {
             tokens_per_second = 0
             prompt_tokens = 0
             prompt_eval_ms = 0
+            semaphore_wait_ms = 0
         }
 
         try {
-            $output = $Prompt | ollama run $Model --verbose 2>&1 | Out-String
-
-            $responseText = $output
-            if ($responseText -match "(?s)^(.*?)ollama\s*:") {
-                $responseText = $Matches[1]
+            # CUDA Optimization: Acquire semaphore to limit concurrent GPU requests
+            $semaphoreStart = Get-Date
+            $acquired = $false
+            if ($null -ne $GpuSemaphore) {
+                $acquired = $GpuSemaphore.WaitOne(60000)  # 60s timeout
+                if (-not $acquired) {
+                    $result.response = "ERROR: GPU semaphore timeout (60s)"
+                    return $result
+                }
             }
-            elseif ($responseText -match "(?s)^(.*?)total duration:") {
-                $responseText = $Matches[1]
-            }
+            $result.semaphore_wait_ms = [math]::Round(((Get-Date) - $semaphoreStart).TotalMilliseconds, 2)
 
-            $responseText = $responseText -replace '\[[\?\d]+[hlGK]', ''
-            $responseText = $responseText -replace '\[\d*[GK]', ''
-            $responseText = $responseText -replace '\[2K', ''
-            $responseText = $responseText.Trim()
+            try {
+                $output = $Prompt | ollama run $Model --verbose 2>&1 | Out-String
 
-            $result.response = $responseText
+                $responseText = $output
+                if ($responseText -match "(?s)^(.*?)ollama\s*:") {
+                    $responseText = $Matches[1]
+                }
+                elseif ($responseText -match "(?s)^(.*?)total duration:") {
+                    $responseText = $Matches[1]
+                }
 
-            $cleanOutput = $output -replace '\[[\?\d]+[hlGK]', ''
-            $cleanOutput = $cleanOutput -replace '\[\d*[GK]', ''
+                $responseText = $responseText -replace '\[[\?\d]+[hlGK]', ''
+                $responseText = $responseText -replace '\[\d*[GK]', ''
+                $responseText = $responseText -replace '\[2K', ''
+                $responseText = $responseText.Trim()
 
-            $evalMatches = [regex]::Matches($cleanOutput, "eval count:\s+(\d+)")
-            if ($evalMatches.Count -gt 0) {
-                $result.tokens_generated = [int]$evalMatches[$evalMatches.Count - 1].Groups[1].Value
-            }
+                $result.response = $responseText
 
-            $rateMatches = [regex]::Matches($cleanOutput, "eval rate:\s+([\d\.]+)")
-            if ($rateMatches.Count -gt 0) {
-                $result.tokens_per_second = [double]$rateMatches[$rateMatches.Count - 1].Groups[1].Value
-            }
+                $cleanOutput = $output -replace '\[[\?\d]+[hlGK]', ''
+                $cleanOutput = $cleanOutput -replace '\[\d*[GK]', ''
 
-            if ($cleanOutput -match "prompt eval count:\s+(\d+)") {
-                $result.prompt_tokens = [int]$Matches[1]
-            }
+                $evalMatches = [regex]::Matches($cleanOutput, "eval count:\s+(\d+)")
+                if ($evalMatches.Count -gt 0) {
+                    $result.tokens_generated = [int]$evalMatches[$evalMatches.Count - 1].Groups[1].Value
+                }
 
-            if ($cleanOutput -match "prompt eval duration:\s+([\d\.]+)ms") {
-                $result.prompt_eval_ms = [double]$Matches[1]
+                $rateMatches = [regex]::Matches($cleanOutput, "eval rate:\s+([\d\.]+)")
+                if ($rateMatches.Count -gt 0) {
+                    $result.tokens_per_second = [double]$rateMatches[$rateMatches.Count - 1].Groups[1].Value
+                }
+
+                if ($cleanOutput -match "prompt eval count:\s+(\d+)") {
+                    $result.prompt_tokens = [int]$Matches[1]
+                }
+
+                if ($cleanOutput -match "prompt eval duration:\s+([\d\.]+)ms") {
+                    $result.prompt_eval_ms = [double]$Matches[1]
+                }
+            } finally {
+                # Release semaphore
+                if ($null -ne $GpuSemaphore -and $acquired) {
+                    $null = $GpuSemaphore.Release()
+                }
             }
         } catch {
             $result.response = "ERROR: $($_.Exception.Message)"
@@ -453,7 +484,7 @@ $testScriptBlock = {
 
     $inferenceStart = Get-Date
     $fullPrompt = if ($TestCase.context) { "$($TestCase.context)`n`n$($TestCase.prompt)" } else { $TestCase.prompt }
-    $inferenceResult = Invoke-OllamaWithMetrics -Model $specialistModel -Prompt $fullPrompt
+    $inferenceResult = Invoke-OllamaWithMetrics -Model $specialistModel -Prompt $fullPrompt -GpuSemaphore $Semaphore
     $response = $inferenceResult.response
     $inferenceMs = [math]::Round(((Get-Date) - $inferenceStart).TotalMilliseconds, 2)
     $totalLatencyMs = $routingResult.latency_ms + $inferenceMs
@@ -539,6 +570,7 @@ foreach ($testCase in $testCases) {
     $null = $powershell.AddArgument($router)
     $null = $powershell.AddArgument($totalParams)
     $null = $powershell.AddArgument($scriptDir)
+    $null = $powershell.AddArgument($ollamaSemaphore)  # CUDA Optimization: Pass GPU semaphore
 
     $powershell.RunspacePool = $runspacePool
 

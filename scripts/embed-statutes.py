@@ -22,7 +22,7 @@ DB_FILE = "florida-statutes.db"
 
 
 def get_ollama_embedding(text: str, model: str = DEFAULT_EMBED_MODEL) -> Optional[List[float]]:
-    """Get embedding from Ollama API."""
+    """Get embedding from Ollama API (single text)."""
     url = f"{OLLAMA_URL}/api/embed"
     data = json.dumps({
         "model": model,
@@ -47,6 +47,68 @@ def get_ollama_embedding(text: str, model: str = DEFAULT_EMBED_MODEL) -> Optiona
     except json.JSONDecodeError:
         print("Invalid JSON response from Ollama")
         return None
+
+
+def get_ollama_embeddings_batch(
+    texts: List[str],
+    model: str = DEFAULT_EMBED_MODEL,
+    batch_size: int = 25
+) -> List[Optional[List[float]]]:
+    """
+    Get embeddings for multiple texts in batches.
+
+    CUDA Optimization: Reduces HTTP overhead by batching requests.
+    Instead of 7842 individual requests, uses ~314 batch requests.
+
+    Args:
+        texts: List of texts to embed
+        model: Ollama embedding model name
+        batch_size: Number of texts per API request (default 25)
+
+    Returns:
+        List of embeddings (or None for failed items)
+    """
+    all_embeddings: List[Optional[List[float]]] = []
+    total_batches = (len(texts) + batch_size - 1) // batch_size
+
+    for batch_idx in range(0, len(texts), batch_size):
+        batch = texts[batch_idx:batch_idx + batch_size]
+        batch_num = batch_idx // batch_size + 1
+
+        url = f"{OLLAMA_URL}/api/embed"
+        data = json.dumps({
+            "model": model,
+            "input": batch  # Ollama accepts array of texts
+        }).encode('utf-8')
+
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        try:
+            # Longer timeout for batch requests
+            with urllib.request.urlopen(req, timeout=120) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                if "embeddings" in result:
+                    all_embeddings.extend(result["embeddings"])
+                else:
+                    # If no embeddings returned, fill with None
+                    all_embeddings.extend([None] * len(batch))
+                    print(f"  Batch {batch_num}/{total_batches}: No embeddings returned")
+        except urllib.error.URLError as e:
+            print(f"  Batch {batch_num}/{total_batches} error: {e}")
+            all_embeddings.extend([None] * len(batch))
+        except json.JSONDecodeError:
+            print(f"  Batch {batch_num}/{total_batches}: Invalid JSON response")
+            all_embeddings.extend([None] * len(batch))
+
+        # Progress update every 10 batches
+        if batch_num % 10 == 0 or batch_num == total_batches:
+            print(f"  Embedding progress: {batch_num}/{total_batches} batches ({len(all_embeddings)}/{len(texts)} texts)")
+
+    return all_embeddings
 
 
 def encode_embedding(embedding: List[float]) -> bytes:
@@ -178,7 +240,27 @@ def embed_chunks(
             print("Warning: Cannot connect to Ollama. Will skip embeddings.")
             skip_embeddings = True
 
-    # Process chunks
+    # CUDA Optimization: Batch embedding instead of one-at-a-time
+    embeddings_list: List[Optional[List[float]]] = []
+    if not skip_embeddings:
+        print(f"\nPreparing texts for batch embedding...")
+        embed_texts = []
+        for chunk in chunks:
+            citation = chunk.get('citation', '')
+            content = chunk.get('content', '')
+            # Use citation + first 2000 chars for embedding
+            embed_text = f"{citation}\n\n{content[:2000]}"
+            embed_texts.append(embed_text)
+
+        print(f"Batch embedding {len(embed_texts)} texts (batch_size={batch_size})...")
+        import time
+        start_time = time.time()
+        embeddings_list = get_ollama_embeddings_batch(embed_texts, embed_model, batch_size)
+        elapsed = time.time() - start_time
+        successful = sum(1 for e in embeddings_list if e is not None)
+        print(f"Embedding complete: {successful}/{len(embed_texts)} successful in {elapsed:.1f}s")
+
+    # Process chunks and insert into database
     embedded_count = 0
     for i, chunk in enumerate(chunks):
         chunk_id = chunk.get('id', f'chunk-{i}')
@@ -190,15 +272,11 @@ def embed_chunks(
         content = chunk.get('content', '')
         tokens = chunk.get('tokens', 0)
 
-        # Get embedding
+        # Get embedding from pre-computed batch
         embedding_blob = None
-        if not skip_embeddings:
-            # Use citation + first 500 chars for embedding
-            embed_text = f"{citation}\n\n{content[:2000]}"
-            embedding = get_ollama_embedding(embed_text, embed_model)
-            if embedding:
-                embedding_blob = encode_embedding(embedding)
-                embedded_count += 1
+        if not skip_embeddings and i < len(embeddings_list) and embeddings_list[i] is not None:
+            embedding_blob = encode_embedding(embeddings_list[i])
+            embedded_count += 1
 
         # Insert
         cursor.execute("""
@@ -217,10 +295,9 @@ def embed_chunks(
             tokens
         ))
 
-        if (i + 1) % 100 == 0:
+        if (i + 1) % 500 == 0:
             conn.commit()
-            emb_status = f", {embedded_count} embedded" if not skip_embeddings else ""
-            print(f"  Processed {i + 1}/{len(chunks)}{emb_status}")
+            print(f"  Inserted {i + 1}/{len(chunks)} chunks into database")
 
     conn.commit()
 

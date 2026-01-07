@@ -59,6 +59,38 @@ function Get-JsonAsHashtable {
 }
 
 # ═══════════════════════════════════════════════════════════════
+# GPU Configuration
+# ═══════════════════════════════════════════════════════════════
+
+function Set-OllamaGpuConfig {
+    <#
+    .SYNOPSIS
+        Configures Ollama environment variables for maximum GPU utilization.
+    .DESCRIPTION
+        Sets OLLAMA_NUM_GPU to force maximum GPU layer offload and
+        OLLAMA_NUM_THREAD for CPU thread optimization.
+    .PARAMETER NumGpu
+        Number of GPU layers to offload. Use 999 for maximum.
+    .PARAMETER NumThread
+        Number of CPU threads for non-GPU work.
+    .PARAMETER Quiet
+        Suppress output message.
+    #>
+    param(
+        [int]$NumGpu = 999,
+        [int]$NumThread = 8,
+        [switch]$Quiet
+    )
+
+    $env:OLLAMA_NUM_GPU = $NumGpu
+    $env:OLLAMA_NUM_THREAD = $NumThread
+
+    if (-not $Quiet) {
+        Write-Host "GPU Config: OLLAMA_NUM_GPU=$NumGpu, OLLAMA_NUM_THREAD=$NumThread" -ForegroundColor DarkGray
+    }
+}
+
+# ═══════════════════════════════════════════════════════════════
 # Hardware Detection
 # ═══════════════════════════════════════════════════════════════
 
@@ -348,4 +380,4 @@ function Write-MarkdownReport {
 }
 
 # Functions are automatically available when dot-sourced
-# Available: Get-HardwareProfile, Export-JsonResult, Export-CsvResult, Get-SpeedGrade, Write-ConsoleReport, Write-MarkdownReport
+# Available: Set-OllamaGpuConfig, Get-HardwareProfile, Export-JsonResult, Export-CsvResult, Get-SpeedGrade, Write-ConsoleReport, Write-MarkdownReport
