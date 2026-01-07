@@ -12,6 +12,17 @@ PowerShell-based LLM benchmarking suite with **two primary purposes**:
 
 ## Commands
 
+### Quick Status Checks
+
+```powershell
+# Check Ollama and loaded models
+ollama ps                    # Show running models
+ollama list                  # Show all available models
+
+# GPU status
+nvidia-smi                   # VRAM usage, temperature, utilization
+```
+
 ### Single-Model Benchmarks
 
 ```powershell
@@ -171,7 +182,10 @@ Extracted from FLLawDL2025 (Folio Views NXT format):
 - **Ollama** running locally (http://localhost:11434)
 - **nvidia-smi** for GPU metrics
 - **PowerShell 5.1+** (Windows built-in) or PowerShell 7+
-- **Python 3.8+** with `datasets`, `chromadb`, `sentence-transformers` for dataset import/embedding
+- **Python 3.8+** for dataset import/embedding:
+  ```powershell
+  pip install datasets chromadb sentence-transformers
+  ```
 - **Optional**: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY for frontier comparison
 
 ## Known Issues
@@ -183,22 +197,9 @@ Extracted from FLLawDL2025 (Folio Views NXT format):
 
 ## Current Benchmark Results
 
-### General Domain (573-Test Suite)
+See `RESEARCH.md` and `RESEARCH.html` for detailed benchmark analysis. Summary:
 
-| Metric | Value |
-|--------|-------|
-| Routing Accuracy | 82.7% |
-| Response Accuracy | 95.8% |
-| Avg Active Params | 9.2B (vs 39.8B total) |
+- **General Domain (573 tests)**: 82.7% routing accuracy, 95.8% response accuracy
+- **Florida Legal (54 tests)**: Semantic 35.2%, Orchestrator 64.8%, MoE 61.1%
 
-Main routing failures: Knowledge ↔ Reasoning overlap (CS/physics questions), Knowledge → Code (MMLU CS looks like code)
-
-### Florida Legal Domain (54-Test Suite)
-
-| Metric | Semantic | Orchestrator | MoE |
-|--------|----------|--------------|-----|
-| Overall Accuracy | 35.2% | **64.8%** | 61.1% |
-| Best Practice Area | Civil (44.4%) | Criminal (77.8%) | Criminal (77.8%) |
-| Worst Practice Area | Family (22.2%) | Civil (44.4%) | Family (50.0%) |
-
-Key insight: Civil law routing is hardest (authority/procedure overlap); Criminal has clearest intent separation.
+Key insight: LLM-based orchestrator routing dramatically outperforms keyword-based semantic routing for specialized domains.
