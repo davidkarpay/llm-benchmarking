@@ -81,6 +81,25 @@ python scripts/create-mixed-suite.py
 python scripts/count-tests.py
 ```
 
+### GPU Optimization
+
+```powershell
+# GPU config is auto-applied in benchmark scripts via Set-OllamaGpuConfig
+# Manual override if needed:
+$env:OLLAMA_NUM_GPU = 999       # Force max GPU layer offload
+$env:OLLAMA_NUM_THREAD = 8      # CPU threads for non-GPU layers
+
+# Parallel benchmarks with GPU coordination (prevents timeouts)
+.\scripts\benchmark-bundle-parallel.ps1 `
+    -Parallelism 4 `
+    -MaxConcurrentOllama 2       # Limit concurrent GPU inference
+
+# Batch embedding (5-6x faster than sequential)
+python scripts/embed-statutes.py embed chunks.jsonl --db output.db --batch-size 25
+```
+
+See `CUDA_OPTIMIZATION_LOG.md` for detailed optimization experiments and results.
+
 ## Architecture
 
 ### Data Flow
@@ -97,7 +116,7 @@ Query → Router (semantic/classifier/orchestrator) → Specialist Selection →
 ### Key Components
 
 **Utility Modules** (dot-source these in scripts):
-- `scripts/utils/Export-BenchmarkResult.ps1`: Hardware detection, JSON/CSV export, speed grading
+- `scripts/utils/Export-BenchmarkResult.ps1`: Hardware detection, JSON/CSV export, speed grading, `Set-OllamaGpuConfig`
 - `scripts/utils/Invoke-BundleRouter.ps1`: All routing strategies (`Get-RoutingDecision` is main entry point)
 - `scripts/utils/Invoke-FrontierAPI.ps1`: OpenAI/Anthropic/Google API clients
 
@@ -193,7 +212,7 @@ Extracted from FLLawDL2025 (Folio Views NXT format):
 - **Dollar sign in prompts**: Use single-quoted here-strings (`@'...'@`) to avoid variable expansion
 - **Large prompts**: Windows 8191 char limit; pipe via stdin for larger inputs
 - **ANSI escape codes**: May appear in JSON snippets from Ollama responses; strip with regex if needed
-- **Parallel execution**: Runspaces share Ollama endpoint; limit parallelism to avoid timeouts
+- **Parallel execution**: Runspaces share Ollama endpoint; use `-MaxConcurrentOllama` parameter to limit concurrent GPU inference (default: 2)
 
 ## Current Benchmark Results
 

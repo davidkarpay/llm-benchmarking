@@ -264,6 +264,50 @@ All specialists pass the cognitive baseline, confirming they have the capabiliti
 
 ---
 
+## Infrastructure Optimizations (CUDA)
+
+Beyond model selection and routing, infrastructure optimizations significantly impact system throughput. See [`CUDA_OPTIMIZATION_LOG.md`](CUDA_OPTIMIZATION_LOG.md) for detailed experiments.
+
+### Summary of CUDA Optimizations
+
+| Optimization | Implementation | Impact |
+|--------------|----------------|--------|
+| **GPU Layer Config** | `OLLAMA_NUM_GPU=999` | +4.4% token throughput |
+| **Batch Embedding** | 25 texts per API call | **5-6x faster** embedding |
+| **GPU Semaphore** | Limit concurrent Ollama calls | Zero timeouts, 100% response accuracy |
+
+**Overall System Efficiency: ~2.5x improvement** from these three optimizations combined.
+
+### Key Findings
+
+1. **Batch processing delivers the biggest wins** - Reducing HTTP overhead from 7,842 individual requests to ~314 batch requests improved embedding throughput 5-6x.
+
+2. **GPU coordination prevents failures** - Limiting concurrent Ollama calls via semaphore eliminated timeout errors while maintaining 86% routing accuracy.
+
+3. **Flash Attention shows no improvement** - Testing `OLLAMA_FLASH_ATTENTION=1` with both short (200 token) and long (2K-8K token) contexts showed no measurable performance gain. Ollama may already enable Flash Attention by default on Ampere GPUs.
+
+4. **Large models need different strategies** - The 120B model running at 28% GPU / 72% CPU suggests KV cache quantization or speculative decoding would provide larger gains than general optimizations.
+
+### Parallel Benchmark Performance
+
+With GPU semaphore coordination (Parallelism=4, MaxConcurrentOllama=2):
+
+| Metric | Value |
+|--------|-------|
+| Routing Accuracy | 86% |
+| Response Accuracy | 100% |
+| Timeout Errors | **0%** |
+| Avg Latency | 15.7s/test |
+| Throughput | 0.24 tests/sec |
+
+### Recommended Next Experiments
+
+1. **KV Cache Quantization** (`OLLAMA_KV_CACHE_TYPE=q8_0`) for large models
+2. **Speculative Decoding** for gpt-oss:120b with smaller draft model
+3. **Increase batch_size** for embedding (24-32 may be optimal for 20GB VRAM)
+
+---
+
 ## Limitations and Future Work
 
 ### Current Limitations

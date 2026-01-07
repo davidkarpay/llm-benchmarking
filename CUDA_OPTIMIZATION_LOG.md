@@ -284,9 +284,48 @@ python scripts/embed-statutes.py embed extracted-statutes/chunks/florida-statute
 
 ---
 
+## Experiment: Flash Attention (2026-01-07)
+
+### Hypothesis
+Flash Attention should improve performance for context-heavy workloads on RTX A4500 (Ampere architecture).
+
+### Test Configuration
+- Environment variable: `OLLAMA_FLASH_ATTENTION=1`
+- Model: llama3.1:8b
+- Tests: Short context (speed) and long context (2K-8K tokens)
+
+### Results
+
+**Short Context (Speed Benchmark):**
+| Condition | Speed | VRAM | Notes |
+|-----------|-------|------|-------|
+| Baseline | 102 tok/s | 6.9 GB | Fresh model load |
+| Flash Attention ON | 103 tok/s | 6.9 GB | Fresh model load |
+| **Difference** | **+1%** | **0** | Within variance |
+
+**Long Context (Context Stress Test):**
+| Context Size | Baseline Time | Flash Attn Time | Baseline Time/1K | FA Time/1K | Recall |
+|--------------|---------------|-----------------|------------------|------------|--------|
+| 2000 tok | 2.58s | 2.61s | 1.06s | 1.07s | PASS/PASS |
+| 4000 tok | 1.24s | 1.25s | 0.26s | 0.26s | PASS/PASS |
+| 8000 tok | 1.59s | 1.58s | 0.17s | 0.16s | FAIL/FAIL |
+
+### Conclusion
+**Flash Attention via `OLLAMA_FLASH_ATTENTION=1` shows NO measurable improvement** on RTX A4500 with llama3.1:8b.
+
+**Possible explanations:**
+1. Ollama may already enable Flash Attention by default on Ampere GPUs
+2. The environment variable may not be supported in current Ollama version
+3. The llama3.1:8b model may already use optimized attention
+
+**Recommendation:** Do not rely on `OLLAMA_FLASH_ATTENTION` for performance gains. Focus on other optimizations (batch embedding, semaphore coordination, KV cache quantization).
+
+---
+
 ## Next Steps
 
 ### Immediate Actions
+- [x] Test Flash Attention (no improvement found)
 - [ ] Add `semaphore_wait_ms` to output JSON
 - [ ] Add Ollama invocation timeout (watchdog)
 - [ ] Run full 573-test suite
