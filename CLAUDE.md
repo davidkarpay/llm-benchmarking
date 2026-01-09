@@ -148,6 +148,19 @@ $body = @{ model = $model; prompt = $prompt; stream = $false } | ConvertTo-Json
 $response = Invoke-RestMethod -Uri "http://localhost:11434/api/generate" -Method Post -Body $body -ContentType "application/json"
 ```
 
+### Key Functions
+
+**Routing** (`Invoke-BundleRouter.ps1`):
+- `Get-RoutingDecision`: Main entry point - routes query to best specialist
+- `Get-KeywordScore`: Calculates keyword match score (0-1)
+- `Get-DomainSignatureScore`: Pattern-based domain matching
+
+**Hardware/Export** (`Export-BenchmarkResult.ps1`):
+- `Set-OllamaGpuConfig`: Sets `OLLAMA_NUM_GPU`/`OLLAMA_NUM_THREAD`
+- `Get-HardwareProfile`: Detects GPU, VRAM, RAM, CPU
+- `Get-JsonAsHashtable`: PS 5.1-compatible JSON parsing
+- `ConvertTo-Hashtable`: Recursively converts PSCustomObject to Hashtable
+
 ## Routing Strategies
 
 | Strategy | Speed | General Domain | Florida Legal | Best For |
@@ -186,15 +199,7 @@ Extracted from FLLawDL2025 (Folio Views NXT format):
     -IncludeOracle
 ```
 
-### Florida Legal Routing Results (54 tests)
-
-| Router | Criminal | Civil | Family | Overall |
-|--------|----------|-------|--------|---------|
-| Semantic | 38.9% | 44.4% | 22.2% | **35.2%** |
-| Orchestrator | 77.8% | 44.4% | 72.2% | **64.8%** |
-| Hierarchical MoE | 77.8% | 55.6% | 50.0% | **61.1%** |
-
-**Why legal routing is harder**: Authority vs procedure distinction requires domain knowledge (e.g., "statute of limitations" is a statute lookup, not a deadline question).
+**Why legal routing is harder**: Authority vs procedure distinction requires domain knowledge (e.g., "statute of limitations" is a statute lookup, not a deadline question). See `RESEARCH.md` for detailed results.
 
 ## Dependencies
 
@@ -222,3 +227,12 @@ See `RESEARCH.md` and `RESEARCH.html` for detailed benchmark analysis. Summary:
 - **Florida Legal (54 tests)**: Semantic 35.2%, Orchestrator 64.8%, MoE 61.1%
 
 Key insight: LLM-based orchestrator routing dramatically outperforms keyword-based semantic routing for specialized domains.
+
+## Result File Locations
+
+| Type | Path | Format |
+|------|------|--------|
+| Raw results | `results/raw/*.json` | JSON (machine-readable) |
+| CSV exports | `results/csv/*.csv` | Tabular data |
+| Reports | `results/reports/*.md` | Markdown summaries |
+| Research | `RESEARCH.md`, `RESEARCH.html` | Full analysis |
