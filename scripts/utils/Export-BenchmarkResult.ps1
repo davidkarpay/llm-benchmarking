@@ -59,16 +59,30 @@ function Get-JsonAsHashtable {
 }
 
 # ═══════════════════════════════════════════════════════════════
-# GPU Configuration
+# GPU Configuration (EXPERIMENTAL - requires verification)
 # ═══════════════════════════════════════════════════════════════
 
 function Set-OllamaGpuConfig {
     <#
     .SYNOPSIS
-        Configures Ollama environment variables for maximum GPU utilization.
+        Configures Ollama environment variables for GPU utilization (EXPERIMENTAL).
     .DESCRIPTION
-        Sets OLLAMA_NUM_GPU to force maximum GPU layer offload and
-        OLLAMA_NUM_THREAD for CPU thread optimization.
+        Sets OLLAMA_NUM_GPU and OLLAMA_NUM_THREAD environment variables.
+
+        ⚠️ CRITICAL: These variables only affect NEW Ollama server instances!
+        If Ollama is already running, these settings have NO EFFECT.
+
+        To apply settings:
+        - Windows: Quit and restart the Ollama application
+        - macOS: launchctl unload/load the service
+        - Linux: systemctl restart ollama
+        - Or: Stop Ollama, run 'ollama serve' from this shell
+
+        EXPERIMENTAL STATUS:
+        - OLLAMA_NUM_GPU: May be ignored by runner (upstream reports)
+        - OLLAMA_NUM_THREAD: May not be supported (requested as feature)
+
+        Always verify with Get-OllamaEnvironment after warmup!
     .PARAMETER NumGpu
         Number of GPU layers to offload. Use 999 for maximum.
     .PARAMETER NumThread
@@ -86,8 +100,293 @@ function Set-OllamaGpuConfig {
     $env:OLLAMA_NUM_THREAD = $NumThread
 
     if (-not $Quiet) {
-        Write-Host "GPU Config: OLLAMA_NUM_GPU=$NumGpu, OLLAMA_NUM_THREAD=$NumThread" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+        Write-Host "║  ⚠️  GPU CONFIG SET (EXPERIMENTAL - REQUIRES VERIFICATION)   ║" -ForegroundColor Yellow
+        Write-Host "╠══════════════════════════════════════════════════════════════╣" -ForegroundColor Yellow
+        Write-Host "║  OLLAMA_NUM_GPU=$NumGpu (may be ignored by runner)            " -ForegroundColor Yellow
+        Write-Host "║  OLLAMA_NUM_THREAD=$NumThread (may not be supported)             " -ForegroundColor Yellow
+        Write-Host "╠══════════════════════════════════════════════════════════════╣" -ForegroundColor Yellow
+        Write-Host "║  These settings ONLY affect NEW Ollama instances!            ║" -ForegroundColor Yellow
+        Write-Host "║  If Ollama is already running, restart it to apply.          ║" -ForegroundColor Yellow
+        Write-Host "║                                                              ║" -ForegroundColor Yellow
+        Write-Host "║  Verify with: Get-OllamaEnvironment -Model <model>           ║" -ForegroundColor Yellow
+        Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host ""
     }
+
+    # Return intent for logging
+    return @{
+        OLLAMA_NUM_GPU = $NumGpu.ToString()
+        OLLAMA_NUM_THREAD = $NumThread.ToString()
+        warning = "These settings only affect new Ollama instances. Restart required."
+    }
+}
+
+# ═══════════════════════════════════════════════════════════════
+# Ollama Environment Capture (Self-Verifying Benchmarks)
+# ═══════════════════════════════════════════════════════════════
+
+function Invoke-OllamaWarmup {
+    <#
+    .SYNOPSIS
+        Preloads a model into Ollama using documented warmup method.
+    .DESCRIPTION
+        Sends empty request to /api/generate to preload model (Ollama-documented method).
+        Waits for model to be loaded before returning.
+    .PARAMETER Model
+        The model name to preload (e.g., "llama3.1:8b")
+    .PARAMETER TimeoutSeconds
+        Maximum time to wait for warmup (default 120)
+    .OUTPUTS
+        Hashtable with method, model, success, duration_ms
+    #>
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Model,
+
+        [int]$TimeoutSeconds = 120
+    )
+
+    $startTime = Get-Date
+    $result = @{
+        method = "api_generate_empty"
+        model = $Model
+        success = $false
+        duration_ms = 0
+        error = $null
+    }
+
+    try {
+        # Ollama-documented warmup: empty request to /api/generate
+        $body = @{
+            model = $Model
+            prompt = ""
+            stream = $false
+        } | ConvertTo-Json
+
+        $response = Invoke-RestMethod -Uri "http://localhost:11434/api/generate" `
+            -Method Post `
+            -Body $body `
+            -ContentType "application/json" `
+            -TimeoutSec $TimeoutSeconds
+
+        $result.success = $true
+    }
+    catch {
+        $result.error = $_.Exception.Message
+    }
+
+    $result.duration_ms = [math]::Round(((Get-Date) - $startTime).TotalMilliseconds)
+    return $result
+}
+
+function Get-OllamaPsOutput {
+    <#
+    .SYNOPSIS
+        Captures and parses 'ollama ps' output.
+    .DESCRIPTION
+        Runs 'ollama ps' and returns both raw output (audit trail) and parsed rows.
+        Parsing rule: split on 2+ spaces to survive spacing changes.
+    .OUTPUTS
+        Hashtable with raw (string), rows (array), parse_warnings (array)
+    #>
+
+    $result = @{
+        raw = ""
+        rows = @()
+        parse_warnings = @()
+    }
+
+    try {
+        $result.raw = & ollama ps 2>&1 | Out-String
+
+        # Parse output: split on 2+ consecutive spaces
+        $lines = $result.raw -split "`n" | Where-Object { $_.Trim() -ne "" }
+
+        if ($lines.Count -gt 0) {
+            # First line is header
+            $headerLine = $lines[0]
+
+            # Parse data rows (skip header)
+            for ($i = 1; $i -lt $lines.Count; $i++) {
+                $line = $lines[$i]
+                if ($line.Trim() -eq "") { continue }
+
+                # Split on 2+ spaces
+                $parts = $line -split '\s{2,}' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+
+                if ($parts.Count -ge 4) {
+                    $result.rows += @{
+                        name = $parts[0]
+                        id = $parts[1]
+                        size = $parts[2]
+                        processor = $parts[3]
+                        until = if ($parts.Count -ge 5) { $parts[4] } else { "" }
+                    }
+                }
+                else {
+                    $result.parse_warnings += "Could not parse line $i`: '$line' (got $($parts.Count) parts)"
+                }
+            }
+        }
+    }
+    catch {
+        $result.parse_warnings += "Failed to run ollama ps: $($_.Exception.Message)"
+    }
+
+    return $result
+}
+
+function Get-OllamaVersion {
+    <#
+    .SYNOPSIS
+        Gets the Ollama version string.
+    .OUTPUTS
+        Version string or error message
+    #>
+    try {
+        $version = & ollama --version 2>&1
+        return ($version | Out-String).Trim()
+    }
+    catch {
+        return "unknown (error: $($_.Exception.Message))"
+    }
+}
+
+function Get-GitCommitHash {
+    <#
+    .SYNOPSIS
+        Gets the current git commit hash for reproducibility.
+    .OUTPUTS
+        Commit hash string or "not a git repo"
+    #>
+    try {
+        $hash = & git rev-parse HEAD 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            return ($hash | Out-String).Trim()
+        }
+        return "not a git repo"
+    }
+    catch {
+        return "git not available"
+    }
+}
+
+function Get-OllamaEnvironment {
+    <#
+    .SYNOPSIS
+        Captures complete Ollama environment for self-verifying benchmarks.
+    .DESCRIPTION
+        Performs warmup, captures ollama ps, and returns structured environment data.
+        This is the ONLY way to prove GPU config had any effect.
+
+        Follows Ollama-documented behavior:
+        - Preload via empty /api/generate request
+        - Processor column in 'ollama ps' shows GPU vs CPU split
+    .PARAMETER Model
+        The model to warmup and verify (e.g., "llama3.1:8b")
+    .PARAMETER SkipWarmup
+        Skip the warmup step (for cold-start measurements)
+    .PARAMETER ExpectedGpuPercent
+        Expected GPU percentage for verification (default 90)
+    .OUTPUTS
+        Hashtable matching the documented environment schema
+    #>
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Model,
+
+        [switch]$SkipWarmup,
+
+        [int]$ExpectedGpuPercent = 90
+    )
+
+    $env = @{
+        ollama_version = Get-OllamaVersion
+        git_commit = Get-GitCommitHash
+        timestamp_utc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        warmup = @{
+            method = "skipped"
+            model = $Model
+            success = $false
+            duration_ms = 0
+        }
+        ollama_ps_raw = ""
+        ollama_ps_rows = @()
+        ollama_env_intent = @{
+            OLLAMA_NUM_GPU = if ($env:OLLAMA_NUM_GPU) { $env:OLLAMA_NUM_GPU } else { "not set" }
+            OLLAMA_NUM_THREAD = if ($env:OLLAMA_NUM_THREAD) { $env:OLLAMA_NUM_THREAD } else { "not set" }
+        }
+        verification = @{
+            gpu_config_verified = $false
+            gpu_config_evidence = ""
+        }
+        parse_warnings = @()
+    }
+
+    # Step 1: Warmup (unless skipped)
+    if (-not $SkipWarmup) {
+        Write-Host "Warming up model: $Model..." -ForegroundColor DarkGray
+        $env.warmup = Invoke-OllamaWarmup -Model $Model
+        if ($env.warmup.success) {
+            Write-Host "  Warmup complete in $($env.warmup.duration_ms)ms" -ForegroundColor DarkGray
+        }
+        else {
+            Write-Host "  Warmup failed: $($env.warmup.error)" -ForegroundColor Yellow
+        }
+    }
+
+    # Step 2: Capture ollama ps
+    Write-Host "Capturing ollama ps..." -ForegroundColor DarkGray
+    $psOutput = Get-OllamaPsOutput
+    $env.ollama_ps_raw = $psOutput.raw
+    $env.ollama_ps_rows = $psOutput.rows
+    $env.parse_warnings = $psOutput.parse_warnings
+
+    # Step 3: Verify GPU config
+    $modelRow = $env.ollama_ps_rows | Where-Object { $_.name -like "$Model*" } | Select-Object -First 1
+
+    if ($modelRow) {
+        $processor = $modelRow.processor
+
+        # Parse GPU percentage from processor column (e.g., "100% GPU", "89% GPU/11% CPU")
+        if ($processor -match '(\d+)%\s*GPU') {
+            $gpuPercent = [int]$Matches[1]
+
+            if ($gpuPercent -ge $ExpectedGpuPercent) {
+                $env.verification.gpu_config_verified = $true
+                $env.verification.gpu_config_evidence = "processor column shows $gpuPercent% GPU (>= $ExpectedGpuPercent% threshold)"
+            }
+            else {
+                $env.verification.gpu_config_verified = $false
+                $env.verification.gpu_config_evidence = "processor column shows $gpuPercent% GPU (< $ExpectedGpuPercent% expected)"
+            }
+        }
+        elseif ($processor -match '(\d+)%\s*CPU') {
+            $cpuPercent = [int]$Matches[1]
+            $env.verification.gpu_config_verified = $false
+            $env.verification.gpu_config_evidence = "processor column shows $cpuPercent% CPU (model running on system memory)"
+        }
+        else {
+            $env.verification.gpu_config_verified = $false
+            $env.verification.gpu_config_evidence = "could not parse processor column: '$processor'"
+        }
+    }
+    else {
+        $env.verification.gpu_config_verified = $false
+        $env.verification.gpu_config_evidence = "model '$Model' not found in ollama ps output"
+    }
+
+    # Print verification result
+    if ($env.verification.gpu_config_verified) {
+        Write-Host "  ✓ GPU config verified: $($env.verification.gpu_config_evidence)" -ForegroundColor Green
+    }
+    else {
+        Write-Host "  ⚠️ UNVERIFIED: $($env.verification.gpu_config_evidence)" -ForegroundColor Yellow
+    }
+
+    return $env
 }
 
 # ═══════════════════════════════════════════════════════════════
@@ -380,4 +679,13 @@ function Write-MarkdownReport {
 }
 
 # Functions are automatically available when dot-sourced
-# Available: Set-OllamaGpuConfig, Get-HardwareProfile, Export-JsonResult, Export-CsvResult, Get-SpeedGrade, Write-ConsoleReport, Write-MarkdownReport
+# Available:
+#   - Set-OllamaGpuConfig: Set GPU env vars (EXPERIMENTAL - requires verification)
+#   - Get-OllamaEnvironment: Capture complete environment for self-verifying benchmarks
+#   - Invoke-OllamaWarmup: Preload model using documented method
+#   - Get-OllamaPsOutput: Capture and parse 'ollama ps' output
+#   - Get-OllamaVersion: Get Ollama version string
+#   - Get-GitCommitHash: Get current git commit for reproducibility
+#   - Get-HardwareProfile: Detect GPU, VRAM, RAM, CPU
+#   - Export-JsonResult, Export-CsvResult: Export results to files
+#   - Get-SpeedGrade, Write-ConsoleReport, Write-MarkdownReport: Reporting utilities

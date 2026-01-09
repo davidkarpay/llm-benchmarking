@@ -194,36 +194,72 @@ def load_chunks(jsonl_path: Path) -> List[dict]:
     return chunks
 
 
+def get_last_processed_index(db_path: Path) -> int:
+    """Get the index of the last processed chunk for resume functionality."""
+    if not db_path.exists():
+        return -1
+    try:
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM chunks WHERE embedding IS NOT NULL")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count - 1  # Return 0-based index
+    except:
+        return -1
+
+
 def embed_chunks(
     jsonl_path: Path,
     db_path: Path,
     embed_model: str = DEFAULT_EMBED_MODEL,
-    batch_size: int = 10,
-    skip_embeddings: bool = False
+    batch_size: int = 25,  # Fixed: was 10, now unified to 25
+    skip_embeddings: bool = False,
+    resume: bool = False,
+    commit_interval: int = 100
 ):
-    """Embed all chunks and store in database."""
+    """
+    Embed all chunks and store in database using streaming pattern.
+
+    STREAMING ARCHITECTURE (prevents memory pressure):
+    - Process in batches: read batch → embed batch → insert batch → commit
+    - Releases memory between batches
+    - Supports --resume for interrupted runs
+    """
+    import time
+
     print(f"Loading chunks from {jsonl_path}...")
     chunks = load_chunks(jsonl_path)
-    print(f"Loaded {len(chunks)} chunks")
+    total_chunks = len(chunks)
+    print(f"Loaded {total_chunks} chunks")
 
     print(f"Creating database at {db_path}...")
     conn = create_database(db_path)
     cursor = conn.cursor()
 
-    # Check existing
+    # Check existing and handle resume
     cursor.execute("SELECT COUNT(*) FROM chunks")
     existing = cursor.fetchone()[0]
+    start_index = 0
+
     if existing > 0:
-        print(f"Database already has {existing} chunks")
-        response = input("Clear and re-embed? [y/N]: ").strip().lower()
-        if response == 'y':
-            cursor.execute("DELETE FROM chunks")
-            cursor.execute("DELETE FROM chunks_fts")
-            conn.commit()
+        if resume:
+            # Resume from last successful position
+            cursor.execute("SELECT COUNT(*) FROM chunks WHERE embedding IS NOT NULL")
+            start_index = cursor.fetchone()[0]
+            print(f"Resuming from chunk {start_index} (of {total_chunks})")
         else:
-            print("Skipping embedding, database intact")
-            conn.close()
-            return
+            print(f"Database already has {existing} chunks")
+            response = input("Clear and re-embed? [y/N]: ").strip().lower()
+            if response == 'y':
+                cursor.execute("DELETE FROM chunks")
+                cursor.execute("DELETE FROM chunks_fts")
+                conn.commit()
+                start_index = 0
+            else:
+                print("Skipping embedding, database intact")
+                conn.close()
+                return
 
     if not skip_embeddings:
         # Check Ollama availability
@@ -235,79 +271,97 @@ def embed_chunks(
                 if embed_model not in available and f"{embed_model}:latest" not in available:
                     print(f"Warning: {embed_model} not found. Available: {available[:5]}")
                     print(f"Pulling {embed_model}...")
-                    # Could add pull here, but let's proceed
         except urllib.error.URLError:
             print("Warning: Cannot connect to Ollama. Will skip embeddings.")
             skip_embeddings = True
 
-    # CUDA Optimization: Batch embedding instead of one-at-a-time
-    embeddings_list: List[Optional[List[float]]] = []
-    if not skip_embeddings:
-        print(f"\nPreparing texts for batch embedding...")
+    # STREAMING ARCHITECTURE: Process in batches to avoid memory pressure
+    # Pattern: read batch → embed batch → insert batch → commit → release memory
+    print(f"\nStreaming embed (batch_size={batch_size}, commit_interval={commit_interval})...")
+    start_time = time.time()
+    embedded_count = 0
+    total_to_process = total_chunks - start_index
+
+    for batch_start in range(start_index, total_chunks, batch_size):
+        batch_end = min(batch_start + batch_size, total_chunks)
+        batch_chunks = chunks[batch_start:batch_end]
+
+        # Step 1: Prepare texts for this batch only
         embed_texts = []
-        for chunk in chunks:
+        for chunk in batch_chunks:
             citation = chunk.get('citation', '')
             content = chunk.get('content', '')
-            # Use citation + first 2000 chars for embedding
             embed_text = f"{citation}\n\n{content[:2000]}"
             embed_texts.append(embed_text)
 
-        print(f"Batch embedding {len(embed_texts)} texts (batch_size={batch_size})...")
-        import time
-        start_time = time.time()
-        embeddings_list = get_ollama_embeddings_batch(embed_texts, embed_model, batch_size)
-        elapsed = time.time() - start_time
-        successful = sum(1 for e in embeddings_list if e is not None)
-        print(f"Embedding complete: {successful}/{len(embed_texts)} successful in {elapsed:.1f}s")
+        # Step 2: Embed this batch
+        batch_embeddings = []
+        if not skip_embeddings:
+            batch_embeddings = get_ollama_embeddings_batch(embed_texts, embed_model, batch_size)
 
-    # Process chunks and insert into database
-    embedded_count = 0
-    for i, chunk in enumerate(chunks):
-        chunk_id = chunk.get('id', f'chunk-{i}')
-        citation = chunk.get('citation', '')
-        hierarchy = chunk.get('hierarchy', {})
-        chapter = hierarchy.get('chapter', {}).get('number', '')
-        section = hierarchy.get('section', {}).get('number', '')
-        title = hierarchy.get('section', {}).get('title', '')
-        content = chunk.get('content', '')
-        tokens = chunk.get('tokens', 0)
+        # Step 3: Insert this batch into database
+        for i, chunk in enumerate(batch_chunks):
+            global_idx = batch_start + i
+            chunk_id = chunk.get('id', f'chunk-{global_idx}')
+            citation = chunk.get('citation', '')
+            hierarchy = chunk.get('hierarchy', {})
+            chapter = hierarchy.get('chapter', {}).get('number', '')
+            section = hierarchy.get('section', {}).get('number', '')
+            title = hierarchy.get('section', {}).get('title', '')
+            content = chunk.get('content', '')
+            tokens = chunk.get('tokens', 0)
 
-        # Get embedding from pre-computed batch
-        embedding_blob = None
-        if not skip_embeddings and i < len(embeddings_list) and embeddings_list[i] is not None:
-            embedding_blob = encode_embedding(embeddings_list[i])
-            embedded_count += 1
+            # Get embedding from batch
+            embedding_blob = None
+            if not skip_embeddings and i < len(batch_embeddings) and batch_embeddings[i] is not None:
+                embedding_blob = encode_embedding(batch_embeddings[i])
+                embedded_count += 1
 
-        # Insert
-        cursor.execute("""
-            INSERT OR REPLACE INTO chunks
-            (id, citation, chapter, section, title, content, metadata, embedding, tokens)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            chunk_id,
-            citation,
-            chapter,
-            section,
-            title,
-            content,
-            json.dumps(chunk),
-            embedding_blob,
-            tokens
-        ))
+            cursor.execute("""
+                INSERT OR REPLACE INTO chunks
+                (id, citation, chapter, section, title, content, metadata, embedding, tokens)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                chunk_id,
+                citation,
+                chapter,
+                section,
+                title,
+                content,
+                json.dumps(chunk),
+                embedding_blob,
+                tokens
+            ))
 
-        if (i + 1) % 500 == 0:
+        # Step 4: Commit at intervals (for resume-on-failure)
+        if (batch_end - start_index) % commit_interval < batch_size or batch_end == total_chunks:
             conn.commit()
-            print(f"  Inserted {i + 1}/{len(chunks)} chunks into database")
 
+        # Progress update
+        processed = batch_end - start_index
+        pct = (processed / total_to_process) * 100 if total_to_process > 0 else 100
+        elapsed = time.time() - start_time
+        rate = processed / elapsed if elapsed > 0 else 0
+        eta = (total_to_process - processed) / rate if rate > 0 else 0
+        print(f"\r  Progress: {batch_end}/{total_chunks} ({pct:.1f}%) | {rate:.1f} chunks/s | ETA: {eta:.0f}s   ", end='')
+
+        # Step 5: Release batch memory (Python GC will clean up)
+        del embed_texts
+        del batch_embeddings
+        del batch_chunks
+
+    print()  # Newline after progress
     conn.commit()
 
     # Final stats
+    elapsed = time.time() - start_time
     cursor.execute("SELECT COUNT(*) FROM chunks WHERE embedding IS NOT NULL")
     with_embeddings = cursor.fetchone()[0]
 
     print(f"\n=== Database Summary ===")
-    print(f"Total chunks: {len(chunks)}")
+    print(f"Total chunks: {total_chunks}")
     print(f"With embeddings: {with_embeddings}")
+    print(f"Time elapsed: {elapsed:.1f}s ({total_to_process / elapsed:.1f} chunks/s)")
     print(f"Database: {db_path}")
 
     conn.close()
@@ -390,6 +444,12 @@ def main():
     embed_parser.add_argument('input', type=Path, help='Input JSONL file')
     embed_parser.add_argument('--db', type=Path, default=Path(DB_FILE), help='Database path')
     embed_parser.add_argument('--model', default=DEFAULT_EMBED_MODEL, help='Embedding model')
+    embed_parser.add_argument('--batch-size', type=int, default=25,
+                              help='Texts per embedding API request (default: 25)')
+    embed_parser.add_argument('--resume', action='store_true',
+                              help='Resume from last successful position (for interrupted runs)')
+    embed_parser.add_argument('--commit-interval', type=int, default=100,
+                              help='Commit to DB every N chunks (default: 100)')
     embed_parser.add_argument('--skip-embeddings', action='store_true',
                               help='Skip Ollama embeddings (FTS only)')
 
@@ -408,7 +468,15 @@ def main():
         if not args.input.exists():
             print(f"Error: {args.input} not found")
             sys.exit(1)
-        embed_chunks(args.input, args.db, args.model, skip_embeddings=args.skip_embeddings)
+        embed_chunks(
+            args.input,
+            args.db,
+            args.model,
+            batch_size=args.batch_size,
+            skip_embeddings=args.skip_embeddings,
+            resume=args.resume,
+            commit_interval=args.commit_interval
+        )
 
     elif args.command == 'search':
         if not args.db.exists():

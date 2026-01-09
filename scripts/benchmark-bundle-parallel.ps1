@@ -38,11 +38,17 @@ param(
 
     [int]$MaxConcurrentOllama = 2,  # CUDA Optimization: Limit concurrent GPU requests
 
+    [int]$MaxClientConcurrency = 0,  # Override client-side concurrency (0 = use MaxConcurrentOllama)
+
     [int]$BatchSize = 10,
 
     [string]$OutputDir = "C:\Users\14104\llm-benchmarks\results",
 
     [switch]$SkipPull,
+
+    [switch]$SkipWarmup,  # Skip model warmup (for cold-start measurements)
+
+    [switch]$DisableSemaphore,  # Disable GPU semaphore for A/B testing
 
     [int]$MaxTests = 0,
 
@@ -373,8 +379,16 @@ $totalCases = $testCases.Count
 
 # CUDA Optimization: Create semaphore to limit concurrent Ollama GPU requests
 # This prevents GPU contention when Parallelism > MaxConcurrentOllama
-$ollamaSemaphore = [System.Threading.Semaphore]::new($MaxConcurrentOllama, $MaxConcurrentOllama)
-Write-Host "GPU Semaphore: Limiting to $MaxConcurrentOllama concurrent Ollama calls" -ForegroundColor DarkGray
+$effectiveConcurrency = if ($MaxClientConcurrency -gt 0) { $MaxClientConcurrency } else { $MaxConcurrentOllama }
+$ollamaSemaphore = $null
+$semaphoreEnabled = -not $DisableSemaphore
+
+if ($semaphoreEnabled) {
+    $ollamaSemaphore = [System.Threading.Semaphore]::new($effectiveConcurrency, $effectiveConcurrency)
+    Write-Host "GPU Semaphore: Limiting to $effectiveConcurrency concurrent Ollama calls" -ForegroundColor DarkGray
+} else {
+    Write-Host "GPU Semaphore: DISABLED (for A/B testing)" -ForegroundColor Yellow
+}
 
 # Create runspace pool
 $runspacePool = [runspacefactory]::CreateRunspacePool(1, $Parallelism)
@@ -398,6 +412,9 @@ $testScriptBlock = {
             prompt_tokens = 0
             prompt_eval_ms = 0
             semaphore_wait_ms = 0
+            semaphore_timeout = $false
+            server_503 = $false
+            error_type = $null
         }
 
         try {
@@ -408,6 +425,8 @@ $testScriptBlock = {
                 $acquired = $GpuSemaphore.WaitOne(60000)  # 60s timeout
                 if (-not $acquired) {
                     $result.response = "ERROR: GPU semaphore timeout (60s)"
+                    $result.semaphore_timeout = $true
+                    $result.error_type = "semaphore_timeout"
                     return $result
                 }
             }
@@ -415,6 +434,14 @@ $testScriptBlock = {
 
             try {
                 $output = $Prompt | ollama run $Model --verbose 2>&1 | Out-String
+
+                # Check for 503 server overload
+                if ($output -match "503" -or $output -match "service unavailable" -or $output -match "server is busy") {
+                    $result.server_503 = $true
+                    $result.error_type = "server_503"
+                    $result.response = "ERROR: Server 503 (overloaded)"
+                    return $result
+                }
 
                 $responseText = $output
                 if ($responseText -match "(?s)^(.*?)ollama\s*:") {
@@ -459,6 +486,7 @@ $testScriptBlock = {
             }
         } catch {
             $result.response = "ERROR: $($_.Exception.Message)"
+            $result.error_type = "exception"
         }
 
         return $result
@@ -555,6 +583,13 @@ $testScriptBlock = {
             routing_correct = $routingIsCorrect
             response_correct = $responsePass
         }
+        # Semaphore metrics for decision-grade analysis
+        concurrency = @{
+            semaphore_wait_ms = $inferenceResult.semaphore_wait_ms
+            semaphore_timeout = $inferenceResult.semaphore_timeout
+            server_503 = $inferenceResult.server_503
+            error_type = $inferenceResult.error_type
+        }
     }
 }
 
@@ -642,6 +677,11 @@ Write-Host "`n"
 $runspacePool.Close()
 $runspacePool.Dispose()
 
+# Dispose semaphore (prevent resource leak)
+if ($null -ne $ollamaSemaphore) {
+    $ollamaSemaphore.Dispose()
+}
+
 $endTime = Get-Date
 $totalDuration = ($endTime - $startTime).TotalSeconds
 
@@ -666,6 +706,11 @@ $sumActiveParams = 0
 $sumTokensPerSec = 0
 $countWithTokens = 0
 
+# Collect semaphore wait times for P95 calculation
+$semaphoreWaitTimes = @()
+$semaphoreTimeoutCount = 0
+$server503Count = 0
+
 foreach ($r in $allResults) {
     $sumLatency += $r.cost_efficiency.total_latency_ms
     $sumActiveParams += $r.bundle_config.active_parameters_b
@@ -673,11 +718,34 @@ foreach ($r in $allResults) {
         $sumTokensPerSec += $r.cost_efficiency.tokens_per_second
         $countWithTokens++
     }
+
+    # Collect concurrency metrics
+    if ($r.concurrency) {
+        $semaphoreWaitTimes += $r.concurrency.semaphore_wait_ms
+        if ($r.concurrency.semaphore_timeout) { $semaphoreTimeoutCount++ }
+        if ($r.concurrency.server_503) { $server503Count++ }
+    }
 }
 
 $avgLatency = if ($allResults.Count -gt 0) { $sumLatency / $allResults.Count } else { 0 }
 $avgActiveParams = if ($allResults.Count -gt 0) { $sumActiveParams / $allResults.Count } else { 0 }
 $avgTokensPerSec = if ($countWithTokens -gt 0) { $sumTokensPerSec / $countWithTokens } else { 0 }
+
+# Calculate semaphore statistics (P95 using nearest-rank method)
+$avgSemaphoreWait = 0
+$maxSemaphoreWait = 0
+$p95SemaphoreWait = 0
+
+if ($semaphoreWaitTimes.Count -gt 0) {
+    $avgSemaphoreWait = [math]::Round(($semaphoreWaitTimes | Measure-Object -Sum).Sum / $semaphoreWaitTimes.Count, 2)
+    $maxSemaphoreWait = [math]::Round(($semaphoreWaitTimes | Measure-Object -Maximum).Maximum, 2)
+
+    # P95 using nearest-rank method: sort ascending, index = ceiling(0.95 * N) - 1, clamp to range
+    $sorted = $semaphoreWaitTimes | Sort-Object
+    $p95Index = [math]::Ceiling(0.95 * $sorted.Count) - 1
+    $p95Index = [math]::Max(0, [math]::Min($p95Index, $sorted.Count - 1))
+    $p95SemaphoreWait = [math]::Round($sorted[$p95Index], 2)
+}
 
 $output = @{
     meta = @{
@@ -708,6 +776,25 @@ $output = @{
         avg_active_parameters_b = [math]::Round($avgActiveParams, 2)
         avg_tokens_per_second = [math]::Round($avgTokensPerSec, 1)
         efficiency_score = (Get-EfficiencyScore -Accuracy $responseAccuracy -ParametersB $avgActiveParams -LatencyMs $avgLatency)
+    }
+    # Concurrency metrics (decision-grade: two separate overload signals)
+    concurrency_summary = @{
+        semaphore_enabled = $semaphoreEnabled
+        effective_concurrency = $effectiveConcurrency
+        # Client-side throttle metrics
+        client_throttle = @{
+            avg_semaphore_wait_ms = $avgSemaphoreWait
+            max_semaphore_wait_ms = $maxSemaphoreWait
+            p95_semaphore_wait_ms = $p95SemaphoreWait
+            semaphore_timeout_count = $semaphoreTimeoutCount
+        }
+        # Server-side overload metrics
+        server_overload = @{
+            server_503_count = $server503Count
+        }
+        # Combined overload rate
+        total_overload_count = $semaphoreTimeoutCount + $server503Count
+        overload_rate = if ($allResults.Count -gt 0) { [math]::Round(($semaphoreTimeoutCount + $server503Count) / $allResults.Count, 4) } else { 0 }
     }
     results = $allResults
 }
@@ -764,5 +851,18 @@ Write-Host "Efficiency Score: " -NoNewline
 $effScore = $output.summary.efficiency_score
 $effColor = if ($effScore -ge 1) { "Green" } elseif ($effScore -ge 0.5) { "Yellow" } else { "Red" }
 Write-Host "$effScore" -ForegroundColor $effColor
+
+Write-Host ""
+Write-Host "Concurrency Metrics:" -ForegroundColor White
+Write-Host "  Semaphore Enabled: $semaphoreEnabled" -ForegroundColor DarkGray
+if ($semaphoreEnabled) {
+    Write-Host "  Effective Concurrency: $effectiveConcurrency" -ForegroundColor DarkGray
+    Write-Host "  Avg Semaphore Wait:    $avgSemaphoreWait ms" -ForegroundColor DarkGray
+    Write-Host "  P95 Semaphore Wait:    $p95SemaphoreWait ms" -ForegroundColor DarkGray
+    Write-Host "  Max Semaphore Wait:    $maxSemaphoreWait ms" -ForegroundColor DarkGray
+}
+$overloadColor = if ($semaphoreTimeoutCount + $server503Count -eq 0) { "Green" } else { "Yellow" }
+Write-Host "  Semaphore Timeouts:    $semaphoreTimeoutCount" -ForegroundColor $overloadColor
+Write-Host "  Server 503 Errors:     $server503Count" -ForegroundColor $overloadColor
 
 Write-Host ""

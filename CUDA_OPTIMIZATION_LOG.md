@@ -37,22 +37,39 @@ Tracking GPU/CUDA optimizations for the LLM Benchmarking Suite.
 ## Optimization 1: Explicit GPU Layer Configuration
 
 **Date:** 2026-01-06
-**Status:** IMPLEMENTED
+**Status:** ⚠️ EXPERIMENTAL / UNPROVEN (updated 2026-01-08)
 **Change:** Add `Set-OllamaGpuConfig` function, set `OLLAMA_NUM_GPU=999`
 
+### ⚠️ CRITICAL WARNING (2026-01-08 Update)
+
+**Environment variables set in PowerShell DO NOT affect an already-running Ollama server.**
+
+Ollama reads env vars at startup. If Ollama is already running when the benchmark script starts:
+- `OLLAMA_NUM_GPU` has **NO EFFECT**
+- `OLLAMA_NUM_THREAD` has **NO EFFECT** (and may not be supported at all)
+- The "+4.4%" improvement reported below is likely noise, not a real gain
+
+**To properly test GPU config:**
+1. Stop Ollama completely
+2. Set env vars at OS/user level
+3. Restart Ollama
+4. Run benchmark with `Get-OllamaEnvironment` to capture `ollama ps` proof
+
 ### Implementation Details
-- Added `Set-OllamaGpuConfig` function to `scripts/utils/Export-BenchmarkResult.ps1` (lines 65-91)
-- Function sets environment variables: `$env:OLLAMA_NUM_GPU` and `$env:OLLAMA_NUM_THREAD`
-- Called at startup in:
-  - `scripts/benchmark-bundle-parallel.ps1`
-  - `scripts/benchmark-bundle.ps1`
-  - `scripts/benchmark-speed.ps1`
+- Added `Set-OllamaGpuConfig` function to `scripts/utils/Export-BenchmarkResult.ps1`
+- Function now prints **loud warning** that settings only affect NEW Ollama instances
+- Added `Get-OllamaEnvironment` function to verify GPU config via `ollama ps`
 
-### Expected Impact
-- Force maximum GPU layer offload
-- More consistent behavior across runs
+### Verification Requirement
+**No GPU config claim is valid without `ollama ps` proof.**
 
-### Observed Results
+Use `Get-OllamaEnvironment -Model <model>` to capture:
+- `ollama --version`
+- `ollama ps` output (raw + parsed)
+- GPU % from Processor column
+- Verification status (verified/unverified)
+
+### Original Test Results (NOW CONSIDERED UNVERIFIED)
 **Test Date:** 2026-01-06 23:31
 **Test:** `benchmark-speed.ps1 -Models @("llama3.1:8b") -SkipPull`
 
@@ -60,15 +77,15 @@ Tracking GPU/CUDA optimizations for the LLM Benchmarking Suite.
 |--------|----------|-----------------|--------|
 | llama3.1:8b tok/s | 105.1 | **109.7** | +4.4% |
 | GPU % | 100% | 100% | - |
-| VRAM | 6.5 GB | 6.4 GB | -0.1 GB |
 
-**Observations:**
-- GPU config message confirmed: "GPU Config: OLLAMA_NUM_GPU=999, OLLAMA_NUM_THREAD=8"
-- Slight speed improvement (+4.6 tok/s)
-- No negative side effects observed
+**⚠️ These results are UNVERIFIED because:**
+- No `ollama ps` snapshot was captured
+- Ollama was likely already running (env vars had no effect)
+- +4.4% is within normal variance
 
-### Silent Problems Discovered
-- None observed
+### Upstream Evidence for Experimental Status
+- `OLLAMA_NUM_GPU`: Reported as ignored by runner in some setups
+- `OLLAMA_NUM_THREAD`: Requested as feature (suggesting not globally supported)
 
 ---
 
@@ -170,15 +187,18 @@ Tracking GPU/CUDA optimizations for the LLM Benchmarking Suite.
 
 ---
 
-## Summary
+## Summary (Updated 2026-01-08)
 
 | Optimization | Status | Impact on Routing | Impact on Inference | Notes |
 |--------------|--------|-------------------|---------------------|-------|
-| GPU Config | **TESTED** | N/A | +4.4% tok/s | OLLAMA_NUM_GPU=999 working |
-| Batch Embedding | **TESTED** | N/A | 5-6x faster | 4.18 chunks/sec |
-| GPU Semaphore | **TESTED** | 86% accuracy | 0 timeouts | Smooth 4-worker execution |
+| GPU Config | ⚠️ **UNPROVEN** | N/A | +4.4% (unverified) | Requires `ollama ps` proof |
+| Batch Embedding | ✅ **VERIFIED** | N/A | 5-6x faster | Streaming pattern added |
+| GPU Semaphore | ✅ **VERIFIED** | 86% accuracy | 0 timeouts | Metrics now exported |
 
-**Overall Assessment:** All three optimizations working as designed with measurable improvements.
+**Overall Assessment:**
+- GPU Config effectiveness is **UNPROVEN** - env vars don't affect running Ollama
+- Batch Embedding and GPU Semaphore are **REAL** improvements
+- Added self-verifying benchmark infrastructure
 
 ---
 
@@ -228,16 +248,21 @@ python scripts/embed-statutes.py embed extracted-statutes/chunks/florida-statute
 
 ---
 
-### Silent Problems Detected
+### Silent Problems Detected (Updated 2026-01-08)
 
-| Problem | Severity | Location |
-|---------|----------|----------|
-| `semaphore_wait_ms` not exported to JSON | HIGH | benchmark-bundle-parallel.ps1:516-558 |
-| No Ollama invocation timeout | CRITICAL | benchmark-bundle-parallel.ps1:417 |
-| No retry logic for failed embed batches | MEDIUM | embed-statutes.py:100-105 |
-| Semaphore never disposed | LOW | benchmark-bundle-parallel.ps1:642 |
-| batch_size mismatch (10 vs 25) | MEDIUM | embed-statutes.py defaults |
-| Env vars may not affect already-loaded models | MEDIUM | Ollama behavior |
+| Problem | Severity | Status | Fix |
+|---------|----------|--------|-----|
+| `semaphore_wait_ms` not exported to JSON | HIGH | ✅ FIXED | Added to `concurrency` section in JSON output |
+| No Ollama invocation timeout | CRITICAL | ⏳ TODO | -- |
+| No retry logic for failed embed batches | MEDIUM | ⏳ TODO | -- |
+| Semaphore never disposed | LOW | ✅ FIXED | Added `$ollamaSemaphore.Dispose()` |
+| batch_size mismatch (10 vs 25) | MEDIUM | ✅ FIXED | Unified to 25, added `--batch-size` CLI arg |
+| Env vars may not affect already-loaded models | ~~MEDIUM~~ **HIGH** | ✅ DOCUMENTED | Added `Get-OllamaEnvironment` verification |
+| No `ollama ps` verification | HIGH | ✅ FIXED | Added `Get-OllamaEnvironment` with warmup + parse |
+| No git commit in results | MEDIUM | ✅ FIXED | Added `Get-GitCommitHash` to environment export |
+| No P95 latency tracking | MEDIUM | ✅ FIXED | Added `p95_semaphore_wait_ms` calculation |
+| No 503 error tracking | MEDIUM | ✅ FIXED | Added `server_503_count` to concurrency summary |
+| Memory pressure in embed script | MEDIUM | ✅ FIXED | Refactored to streaming pattern |
 
 **Testing Gaps:**
 - Only 50/573 tests run (8.7% coverage)
@@ -324,15 +349,35 @@ Flash Attention should improve performance for context-heavy workloads on RTX A4
 
 ## Next Steps
 
-### Immediate Actions
+### Immediate Actions (Updated 2026-01-08)
 - [x] Test Flash Attention (no improvement found)
-- [ ] Add `semaphore_wait_ms` to output JSON
+- [x] Add `semaphore_wait_ms` to output JSON ✅
+- [x] Add `Get-OllamaEnvironment` for verification ✅
+- [x] Add `ollama ps` parsing and validation ✅
+- [x] Fix batch_size mismatch (10 → 25) ✅
+- [x] Add streaming pattern to embed script ✅
+- [x] Add P95 semaphore wait calculation ✅
+- [x] Add 503 error tracking ✅
+- [x] Dispose semaphore at end of benchmark ✅
 - [ ] Add Ollama invocation timeout (watchdog)
 - [ ] Run full 573-test suite
 - [ ] Add retry logic to embedding batches
+
+### New A/B Testing Switches (2026-01-08)
+```powershell
+# Disable semaphore for controlled comparison
+.\scripts\benchmark-bundle-parallel.ps1 -DisableSemaphore ...
+
+# Force single-request behavior
+.\scripts\benchmark-bundle-parallel.ps1 -MaxClientConcurrency 1 ...
+
+# Skip warmup for cold-start measurement
+.\scripts\benchmark-bundle-parallel.ps1 -SkipWarmup ...
+```
 
 ### Experiments to Run
 - [ ] Test Flash Attention + KV Cache Quantization
 - [ ] Find optimal batch_size for 20GB VRAM
 - [ ] Profile gpt-oss:120b with speculative decoding
 - [ ] Create quantization comparison matrix
+- [ ] Controlled before/after comparison with new A/B switches
