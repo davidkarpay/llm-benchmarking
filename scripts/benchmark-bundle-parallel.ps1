@@ -356,11 +356,25 @@ if (-not $SkipPull) {
     Write-Host "  Models ready!" -ForegroundColor Green
 }
 
-Write-Host "`nWarming up models..." -ForegroundColor Yellow
+# Build unique model list once
 $models = $bundle.specialists | ForEach-Object { $_.model } | Sort-Object -Unique
-foreach ($model in $models) {
-    Write-Host "  Warming: $model" -ForegroundColor DarkGray
-    ollama run $model "Hello" 2>&1 | Out-Null
+
+# Self-verifying environment capture (version, ollama ps, git commit)
+Write-Host "`nCapturing Ollama environment (self-verifying benchmark)..." -ForegroundColor Yellow
+$environmentModel = $models | Select-Object -First 1
+$ollamaEnvironment = Get-OllamaEnvironment -Model $environmentModel -SkipWarmup:$SkipWarmup
+
+if (-not $SkipWarmup) {
+    Write-Host "`nWarming up remaining models..." -ForegroundColor Yellow
+    foreach ($model in ($models | Select-Object -Skip 1)) {
+        Write-Host "  Warming: $model" -ForegroundColor DarkGray
+        $warmupResult = Invoke-OllamaWarmup -Model $model
+        if (-not $warmupResult.success) {
+            Write-Host "    Warmup failed: $($warmupResult.error)" -ForegroundColor Yellow
+        }
+    }
+} else {
+    Write-Host "`nSkipping warmup (-SkipWarmup set)" -ForegroundColor Yellow
 }
 
 # ═══════════════════════════════════════════════════════════════
@@ -758,6 +772,7 @@ $output = @{
         total_duration_seconds = [math]::Round($totalDuration, 1)
         tests_per_second = [math]::Round($allResults.Count / $totalDuration, 2)
     }
+    environment = $ollamaEnvironment
     test = @{
         name = $testName
         category = "bundle"
@@ -808,6 +823,23 @@ $fullPath = Join-Path $rawDir $filename
 $output | ConvertTo-Json -Depth 15 | Out-File $fullPath -Encoding UTF8
 
 Write-Host "JSON saved: $fullPath" -ForegroundColor Green
+
+# Save environment audit trail alongside JSON (self-verifying proof)
+if ($null -ne $ollamaEnvironment) {
+    $envFilename = "{0}_{1}_ollama-environment.txt" -f (Get-Date -Format "yyyy-MM-dd_HHmmss"), $testName
+    $envPath = Join-Path $rawDir $envFilename
+
+    $envLines = @()
+    $envLines += "timestamp_utc: $($ollamaEnvironment.timestamp_utc)"
+    $envLines += "ollama_version: $($ollamaEnvironment.ollama_version)"
+    $envLines += "git_commit: $($ollamaEnvironment.git_commit)"
+    $envLines += ""
+    $envLines += "ollama ps (raw):"
+    $envLines += $ollamaEnvironment.ollama_ps_raw
+
+    $envLines | Out-File $envPath -Encoding UTF8
+    Write-Host "Environment saved: $envPath" -ForegroundColor Green
+}
 
 # ═══════════════════════════════════════════════════════════════
 # SUMMARY

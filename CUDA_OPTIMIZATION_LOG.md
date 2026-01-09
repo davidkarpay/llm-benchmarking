@@ -99,10 +99,13 @@ Use `Get-OllamaEnvironment -Model <model>` to capture:
 - File: `scripts/embed-statutes.py`
 - New function: `get_ollama_embeddings_batch()` (lines 52-111)
 - Batch size: 25 (configurable via parameter)
-- Modified `embed_chunks()` to:
-  1. Collect all texts upfront
-  2. Batch embed in one pass
-  3. Insert with pre-computed embeddings
+- Modified `embed_chunks()` to streaming pattern:
+  1. Read batch of chunks from file
+  2. Embed batch via Ollama API
+  3. Insert batch to database
+  4. Commit at intervals (configurable)
+  5. Release memory, repeat
+- Added `--batch-size`, `--resume`, `--commit-interval` CLI arguments
 - Added timing and progress output
 
 ### Expected Impact
@@ -134,8 +137,7 @@ Use `Get-OllamaEnvironment -Model <model>` to capture:
 - Default batch_size in script is 10 (function default is 25)
 
 ### Silent Problems Discovered
-- `batch_size` parameter in `embed_chunks()` defaults to 10, not 25
-- Consider increasing default or making it a CLI argument
+- ~~`batch_size` parameter in `embed_chunks()` defaults to 10, not 25~~ **FIXED**: Unified to 25, added `--batch-size` CLI argument
 
 ---
 
@@ -276,8 +278,8 @@ python scripts/embed-statutes.py embed extracted-statutes/chunks/florida-statute
 ### Research Recommendations
 
 **Immediate (High Impact, Low Effort):**
-1. Enable Flash Attention: `$env:OLLAMA_FLASH_ATTENTION = "1"` → +10-20%
-2. KV Cache Quantization: `$env:OLLAMA_KV_CACHE_TYPE = "q8_0"` → +15-40% for large models
+1. ~~Enable Flash Attention~~ - **TESTED: No improvement** (see experiment below)
+2. KV Cache Quantization: `$env:OLLAMA_KV_CACHE_TYPE = "q8_0"` → +15-40% for large models (untested)
 3. Increase batch_size to 24-32 for embedding → +5-15%
 
 **Short-Term Experiments:**
